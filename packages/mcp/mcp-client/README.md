@@ -91,6 +91,12 @@ The server's tools appear before the harness starts its first turn. When the ser
 
 When a server connection drops — for example a local server process crashes — the plugin reconnects automatically with delays that double from 500 ms up to 30 s and then refreshes the tool set; reconnect progress is visible in the logs. During an outage the last known tools stay listed but calls to them fail until the server recovers. After ten consecutive failed attempts the server's tools are removed and reconnection stops until you reload the configuration or restart the harness; a server that stays connected for a while resets that counter. Set `reconnect.enabled: false` to disable automatic reconnection — tools then stay listed but fail until you reload. Editing the configuration entry reloads the server connection in place, and unchanged names stay unchanged.
 
+### Probing a server
+
+`probeConnection(config, { timeoutMs, signal })` answers "does this configuration work?" without mounting anything: it connects, drains the tool list, and closes. Import it from the package root when a configuration surface must validate a server before or after the bridge mounts it.
+
+The probe registers no tools, reserves no `serverName`, and never enters the reconnect loop, so it can test a server that is already mounted, or one that would mount under a name already in use. A failure returns `ok: false` with a summary rather than throwing, and the summary never contains credential values. The total budget defaults to 15 seconds and covers connect, discovery, and close; the transport is closed — including reaping a stdio child — before the probe settles, and a transport that will not close delays the answer by at most five seconds instead of holding the caller.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -116,6 +122,7 @@ This section explains the design decisions behind the bridge and points at the c
 | [`src/index.ts`](src/index.ts) | Plugin entry: `Config` schema, `serverName` reservation, activation await |
 | [`src/connection.ts`](src/connection.ts) | Connection supervisor: client generations, reconnect policy, attempt budget, disposal |
 | [`src/tools.ts`](src/tools.ts) | Tool bridge: discovery, naming, registration swap, execution, image projection |
+| [`src/probe.ts`](src/probe.ts) | One-shot connectivity probe: connect, drain the tool list, close |
 | [`src/transport.ts`](src/transport.ts) | Transport factory: stdio spawn with scrubbed env, Streamable HTTP |
 | — | No runtime invariant companion is published; MCP generations contribute through the tool registry, but the bridge exposes no independent server-to-tool snapshot after an asynchronous resync. |
 
@@ -189,7 +196,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 These limits describe what you cannot do with this plugin and when it needs operational attention. They are current package constraints, not a comparison with other MCP clients or a task backlog.
 
 - **Tools are the only bridged MCP capability** — Resources and Prompts have no harness consumer mechanism and are deferred.
-- **Startup and discovery timeouts are inherited from the MCP SDK** — the plugin exposes no connection or discovery timeout; each `initialize` and paginated `tools/list` request uses the SDK's 60-second request default, so an unresponsive server or cursor chain can delay both activation and teardown while the initial synchronization settles.
+- **Activation and discovery timeouts are inherited from the MCP SDK** — mounting a server exposes no connection or discovery timeout; each `initialize` and paginated `tools/list` request uses the SDK's 60-second request default, so an unresponsive server or cursor chain can delay both activation and teardown while the initial synchronization settles. `probeConnection` is the bounded alternative: it takes its own total budget without activating the bridge.
 - **Reconnect triggers on transport close** — a crashed stdio child fires it; Streamable HTTP failures surface per request through the SDK transport's own recovery, so an unreachable HTTP server is retried per call rather than respawned by the supervisor.
 - **Image is the only durable rich-result bridge** — PNG, JPEG, WebP, and GIF enter Native context after exact capability proof. Audio and embedded-resource payloads remain execution-local with explicit diagnostics, while resource links preserve only their name and URI as text.
 - **Unsupported MCP output schemas are not enforced** — `structuredContent` falls back to `JsonValue` when the advertised schema uses vocabulary outside the harness subset.

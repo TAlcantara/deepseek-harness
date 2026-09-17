@@ -1,0 +1,51 @@
+- dialog "设置":
+  - navigation:
+    - text: 设置
+    - button "通用设置":
+      - img
+      - text: 通用设置
+    - button "模型":
+      - img
+      - text: 模型
+    - button "MCP":
+      - img
+      - text: MCP
+    - button "插件":
+      - img
+      - text: 插件
+    - button "Agent 预设":
+      - img
+      - text: Agent 预设
+  - button "打开配置文件"
+  - button "关闭":
+    - img
+    - text: 关闭
+  - region "MCP 服务器":
+    - heading "MCP 服务器" [level=3]
+    - paragraph: 连接外部 MCP 服务器，把它们的工具作为原生工具提供给模型。
+    - button "添加服务器"
+    - text: 命名空间
+    - textbox "命名空间"
+    - paragraph: 工具名形如 mcp__命名空间__工具。创建后不可修改。
+    - text: 展示名
+    - textbox "展示名"
+    - text: 传输方式
+    - combobox "传输方式":
+      - option "本地命令（stdio）" [selected]
+      - option "远程服务（Streamable HTTP）"
+    - text: 命令
+    - textbox "命令"
+    - text: 参数（每行一个）
+    - textbox "参数（每行一个）"
+    - text: 工作目录
+    - textbox "工作目录"
+    - text: 环境变量 未设置 新增变量，每行 NAME=value
+    - textbox "新增变量，每行 NAME=value"
+    - text: 工具调用超时（毫秒）
+    - textbox "工具调用超时（毫秒）": "60000"
+    - button "保存" [disabled]
+    - button "测试"
+    - button "取消"
+    - text: 未测试
+    - paragraph: 尚未配置 MCP 服务器
+    - paragraph: 添加一台服务器后，它的工具会以 mcp__名称__工具 的形式出现。

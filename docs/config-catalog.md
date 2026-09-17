@@ -1576,7 +1576,77 @@ export interface ReconnectConfig {
 }
 ```
 
-Source: [`packages/mcp/mcp-client/src/index.ts:98`](../packages/mcp/mcp-client/src/index.ts)
+Source: [`packages/mcp/mcp-client/src/index.ts:100`](../packages/mcp/mcp-client/src/index.ts)
+
+<a id="deepseek-aidsh-mcp-servers"></a>
+
+## `@deepseek-ai/dsh-mcp-servers`
+
+Requires: `settings`
+
+```ts config-catalog
+/** Deployment-level configuration. */
+export interface Config {
+  /** Servers the deployment composes; the settings base layer. */
+  initialServers: McpServerEntry[]
+  /** Whether this deployment accepts roster writes. */
+  editable: boolean
+  /** Total budget one connectivity test runs under, in milliseconds. */
+  testTimeoutMs: number
+  /** How many connectivity tests may run at once. */
+  maxConcurrentTests: number
+}
+
+/** One persisted roster entry, as the settings document stores it. */
+export interface McpServerEntry {
+  /** Stable roster id assigned by the Host; the reconciliation key. */
+  id: string
+  /**
+   * Model-facing tool namespace. Immutable after creation: it decides the
+   * public tool names `mcp__<serverName>__<tool>` that session history and
+   * permission rules already record.
+   */
+  serverName: string
+  /** Whether the entry participates in mounting. */
+  enabled: boolean
+  /** Display name; presentation only. */
+  label: string
+  /** Which transport carries this server. */
+  transport: 'stdio' | 'streamable-http'
+  /** Executable used to start a stdio server. */
+  command: string
+  /** Arguments passed directly, without shell interpolation. */
+  args: string[]
+  /** Working directory for a stdio server. */
+  cwd: string
+  /** Extra stdio environment variables; values never cross the wire. */
+  env: Record<string, string>
+  /** Streamable HTTP endpoint. */
+  url: string
+  /** Extra HTTP request headers; values never cross the wire. */
+  headers: Record<string, string>
+  /** Per-tool-call timeout in milliseconds. */
+  toolCallTimeoutMs: number
+  /** Fail bridge activation when the initial connection or sync fails. */
+  failOnStartupError: boolean
+  /** Automatic reconnect policy; omission uses the bridge's defaults. */
+  reconnect?: McpReconnectConfig
+}
+
+/** Automatic reconnect policy for one mounted server. */
+export interface McpReconnectConfig {
+  /** Reconnect automatically after a lost connection. */
+  enabled?: boolean
+  /** First reconnect delay in milliseconds; doubles per consecutive failure. */
+  initialDelayMs?: number
+  /** Backoff ceiling in milliseconds. */
+  maxDelayMs?: number
+  /** Consecutive failed attempts per outage before giving up. */
+  maxAttempts?: number
+}
+```
+
+Source: [`packages/mcp/mcp-servers/src/index.ts:37`](../packages/mcp/mcp-servers/src/index.ts)
 
 <a id="deepseek-aidsh-message-feedback"></a>
 
@@ -3477,6 +3547,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-session` ([`packages/client/ui-session/src/index.ts`](../packages/client/ui-session/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings` ([`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-general` ([`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-settings-mcp` ([`packages/client/ui-settings-mcp/src/index.ts`](../packages/client/ui-settings-mcp/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-models` ([`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory` ([`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-settings-plugins` ([`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts))

@@ -69,12 +69,57 @@ const IMAGE_MEDIA_TYPES: readonly ImageMediaType[] = [
 /** Canonical RFC 4648 base64, excluding whitespace and URL-safe aliases. */
 const CANONICAL_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
 
-/** List without mutating the SDK's per-page output-validator cache. */
-function listToolsUncached(client: Client, cursor?: string) {
-  return client.request(
-    { method: 'tools/list', ...cursor === undefined ? {} : { params: { cursor } } },
-    ListToolsResultSchema,
-  )
+/**
+ * List without mutating the SDK's per-page output-validator cache.
+ *
+ * @param client - Connected MCP client.
+ * @param cursor - Continuation cursor from the previous page, when any.
+ * @param signal - Optional abort signal carried into the request.
+ * @returns The raw page response.
+ */
+function listToolsUncached(client: Client, cursor?: string, signal?: AbortSignal) {
+  const request = { method: 'tools/list' as const, ...cursor === undefined ? {} : { params: { cursor } } }
+  return signal === undefined
+    ? client.request(request, ListToolsResultSchema)
+    : client.request(request, ListToolsResultSchema, { signal })
+}
+
+/** Options for {@link drainToolPages}. */
+export interface DrainToolPagesOptions {
+  /** Message prefix for protocol rejections, for example `mcp-client(github)`. */
+  label: string
+  /** Optional abort signal carried into every page request. */
+  signal?: AbortSignal
+}
+
+/**
+ * Drain every `tools/list` page in server order, rejecting a repeated
+ * continuation cursor. Raw tools are returned so each caller applies its own
+ * identity rule: the bridge rejects a duplicate public name, while a probe
+ * reports the advertised list unchanged.
+ *
+ * @param client - Connected MCP client.
+ * @param options - Rejection label and optional abort signal.
+ * @returns Every advertised tool, concatenated across pages.
+ */
+export async function drainToolPages(
+  client: Client,
+  options: DrainToolPagesOptions,
+): Promise<Awaited<ReturnType<typeof listToolsUncached>>['tools']> {
+  const tools: Awaited<ReturnType<typeof listToolsUncached>>['tools'] = []
+  const seenCursors = new Set<string>()
+  let cursor: string | undefined
+  do {
+    const response = await listToolsUncached(client, cursor, options.signal)
+    tools.push(...response.tools)
+    cursor = response.nextCursor
+    if (cursor === undefined) break
+    if (seenCursors.has(cursor)) {
+      throw new Error(`${options.label}: server repeated a tools/list continuation cursor — invalid tool list`)
+    }
+    seenCursors.add(cursor)
+  } while (true)
+  return tools
 }
 
 /** Call without the SDK pre-validating an output schema the bridge may not support. */
@@ -149,39 +194,26 @@ export async function syncTools(
 ): Promise<ToolDisposers> {
   // Phase 1: fetch and build the next generation without touching the registry.
   const definitions = new Map<string, ToolDefinition>()
-  const seenCursors = new Set<string>()
-  let cursor: string | undefined
-  do {
-    const response = await listToolsUncached(client, cursor)
-    for (const tool of response.tools) {
-      const publicName = publicToolName(opts.serverName, tool.name)
-      if (definitions.has(publicName)) {
-        throw new Error(
-          `mcp-client(${opts.serverName}): server listed tool "${tool.name}" more than once — invalid tool list`,
-        )
-      }
-      definitions.set(publicName, createDefinition(
-        client,
-        ctx,
-        publicName,
-        tool.name,
-        tool.description ?? '',
-        tool.inputSchema,
-        supportedOutputSchema(tool.outputSchema),
-        tool.execution?.taskSupport === 'required',
-        opts,
-      ))
+  const tools = await drainToolPages(client, { label: `mcp-client(${opts.serverName})` })
+  for (const tool of tools) {
+    const publicName = publicToolName(opts.serverName, tool.name)
+    if (definitions.has(publicName)) {
+      throw new Error(
+        `mcp-client(${opts.serverName}): server listed tool "${tool.name}" more than once — invalid tool list`,
+      )
     }
-    cursor = response.nextCursor
-    if (cursor) {
-      if (seenCursors.has(cursor)) {
-        throw new Error(
-          `mcp-client(${opts.serverName}): server repeated a tools/list continuation cursor — invalid tool list`,
-        )
-      }
-      seenCursors.add(cursor)
-    }
-  } while (cursor)
+    definitions.set(publicName, createDefinition(
+      client,
+      ctx,
+      publicName,
+      tool.name,
+      tool.description ?? '',
+      tool.inputSchema,
+      supportedOutputSchema(tool.outputSchema),
+      tool.execution?.taskSupport === 'required',
+      opts,
+    ))
+  }
 
   // Phase 2: swap generations.
   for (const dispose of previous.values()) dispose()

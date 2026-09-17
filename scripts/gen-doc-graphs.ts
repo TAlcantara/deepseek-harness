@@ -671,6 +671,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Provider registration and selection plus normalized query execution over exactly four operations; the seam offers no protocol escape hatch, so a backend translates into the normalized request and result.',
   },
   {
+    key: 'mcpServers',
+    pkg: 'mcp-servers',
+    title: 'Settings-backed MCP server roster',
+    mode: 'seam',
+    consumers: ['client-ui-settings-mcp'],
+    note: 'The roster document is the single source of truth: a write persists first and the mounted dsh-mcp-client instances converge from it, one bridge per enabled entry.',
+  },
+  {
     key: 'dynamicCordisRunner',
     pkg: 'cordis-host-runner',
     title: 'Dynamic Cordis package host runner',

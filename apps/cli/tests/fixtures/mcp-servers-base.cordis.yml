@@ -1,0 +1,22 @@
+# Minimal keyless composition for the MCP server roster end-to-end spec. Source
+# builtins keep this test independent of prebuilt workspace artifacts, and the
+# spec patches the settings row with a scenario-local document path.
+- id: system-prompt
+  name: cordis:memory-test-system-prompt
+
+- id: tools
+  name: cordis:memory-test-tools
+
+- id: settings
+  name: cordis:memory-test-settings
+  config:
+    path: ''
+    watch: false
+
+- id: mcp-servers
+  name: cordis:memory-test-mcp-servers
+  config:
+    initialServers: []
+    editable: true
+    testTimeoutMs: 5000
+    maxConcurrentTests: 2

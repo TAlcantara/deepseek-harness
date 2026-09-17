@@ -1,0 +1,28 @@
+- dialog "设置":
+  - navigation:
+    - text: 设置
+    - button "通用设置":
+      - img
+      - text: 通用设置
+    - button "模型":
+      - img
+      - text: 模型
+    - button "MCP":
+      - img
+      - text: MCP
+    - button "插件":
+      - img
+      - text: 插件
+    - button "Agent 预设":
+      - img
+      - text: Agent 预设
+  - button "打开配置文件"
+  - button "关闭":
+    - img
+    - text: 关闭
+  - region "MCP 服务器":
+    - heading "MCP 服务器" [level=3]
+    - paragraph: 连接外部 MCP 服务器，把它们的工具作为原生工具提供给模型。
+    - button "添加服务器"
+    - paragraph: 尚未配置 MCP 服务器
+    - paragraph: 添加一台服务器后，它的工具会以 mcp__名称__工具 的形式出现。

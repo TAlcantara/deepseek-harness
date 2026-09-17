@@ -22,11 +22,12 @@ The `mcp/` group connects the harness to the Model Context Protocol (MCP) ecosys
 <a id="packages"></a>
 ## Packages
 
-The group holds one package; the package README and the links below own the details.
+The group holds two packages; the package READMEs and the links below own the details.
 
 | Package | What it provides |
 |---|---|
 | [`mcp-client/`](mcp-client/README.md) | Attach one external MCP server so the model can call its tools as native tools |
+| [`mcp-servers/`](mcp-servers/README.md) | Keep a settings-backed roster of servers, mount each one through `mcp-client`, and test connectivity on demand |
 
 -----
 
@@ -36,6 +37,7 @@ The group holds one package; the package README and the links below own the deta
 Try the worked example configurations to see the plugin in action, then read the Agent Note for the behavior decisions behind it.
 
 - [MCP client plugin Agent Note](../../.agents/notes/implemented/feature/2026-07-07-mcp-client-plugin.md) — the bridge's design: server-qualified naming, discovery, execution, and environment scrubbing.
+- [MCP settings page Agent Note](../../.agents/notes/implemented/feature/2026-09-17-mcp-settings-page.md) — the roster's settings model, reconciliation, and connectivity test.
 - [Third-party memory MCP guide](../../docs/user/guide/mcp-memory.md) — runnable overlay rows and setup instructions.
 - [Tools subsystem reference](../../docs/subsystems/tools.md) — the `ToolRuntime` that receives the registered tools.
 

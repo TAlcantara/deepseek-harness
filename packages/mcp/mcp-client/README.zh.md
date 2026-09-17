@@ -91,6 +91,12 @@ kind: "package-reference"
 
 服务器连接断开时——例如本地服务器进程崩溃——插件会以从 500 ms 起逐次翻倍、上限 30 s 的延迟自动重连，并刷新工具集；重连进度在日志中可见。中断期间最后已知的工具仍会列出，但对它们的调用会失败，直到服务器恢复。连续失败十次后，该服务器的工具会被移除，重连停止，直到你重载配置或重启 harness；服务器持续连接一段时间后，该计数会重置。设置 `reconnect.enabled: false` 可禁用自动重连——此时工具在断开后仍会列出，但调用失败，直到你重载。编辑配置项会在原地重载服务器连接，未变的名称保持不变。
 
+### 探测服务器
+
+`probeConnection(config, { timeoutMs, signal })` 回答"这份配置能用吗"，而不挂载任何东西：连接、取完工具列表、关闭。配置界面需要在桥接挂载之前或之后验证一台服务器时，从包根导入它。
+
+探测不注册任何工具、不预留 `serverName`，也不进入重连循环，因此它可以测一台已经挂载的服务器，或一台会与已用名称冲突的服务器。失败以 `ok: false` 加摘要返回而非抛出，摘要绝不含凭据值。总预算默认 15 秒，覆盖连接、发现与关闭；探测返回之前传输已关闭（包括回收 stdio 子进程），而拒绝关闭的传输最多让回答延迟五秒，不会一直拖住调用方。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -116,6 +122,7 @@ kind: "package-reference"
 | [`src/index.ts`](src/index.ts) | 插件入口：`Config` schema、`serverName` 预留、激活等待 |
 | [`src/connection.ts`](src/connection.ts) | 连接监督器：客户端世代、重连策略、尝试预算、dispose（资源释放） |
 | [`src/tools.ts`](src/tools.ts) | 工具桥接：发现、命名、注册交换、执行、图片投影 |
+| [`src/probe.ts`](src/probe.ts) | 一次性连通性探测：连接、取完工具列表、关闭 |
 | [`src/transport.ts`](src/transport.ts) | 传输工厂：带清洗环境的 stdio spawn、Streamable HTTP |
 | — | 不发布运行时不变式伴生入口；MCP 世代会通过工具注册表发挥作用，但桥接在异步重新同步后不提供独立的服务器工具映射快照。 |
 
@@ -189,7 +196,7 @@ kind: "package-reference"
 这些限制说明你无法用本插件做什么、以及何时需要运维注意。它们是当前包约束，不是与其他 MCP 客户端的对比，也不是任务积压。
 
 - **只桥接 MCP 的工具能力**——资源与提示词没有 harness 消费机制，暂缓实现。
-- **启动与发现超时继承自 MCP SDK**——插件不暴露连接或发现超时；每次 `initialize` 与分页 `tools/list` 请求都使用 SDK 默认的 60 秒请求超时，因此无响应的服务器或 cursor chain 在初始同步完成期间可能同时延迟激活与 teardown。
+- **激活与发现超时继承自 MCP SDK**——挂载服务器不暴露连接或发现超时；每次 `initialize` 与分页 `tools/list` 请求都使用 SDK 默认的 60 秒请求超时，因此无响应的服务器或 cursor chain 在初始同步完成期间可能同时延迟激活与 teardown。`probeConnection` 是有界替代：它自带总预算，且不激活桥接。
 - **重连在传输关闭时触发**——崩溃的 stdio 子进程会触发重连；Streamable HTTP 失败按请求经 SDK 传输自身的恢复机制暴露，因此不可达的 HTTP 服务器会按调用重试，而非由 supervisor 重新 spawn。
 - **图片是唯一的持久丰富结果桥接**——PNG、JPEG、WebP 与 GIF 在确切能力得到证明后进入 Native 上下文。音频与嵌入资源载荷仍只存在于执行局部并带明确诊断，资源链接只以文本保留名称与 URI。
 - **不强制执行不受支持的 MCP 输出 schema**——已声明 schema 使用 harness 子集之外的词汇时，`structuredContent` 回退为 `JsonValue`。

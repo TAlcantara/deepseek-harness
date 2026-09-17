@@ -22,11 +22,12 @@ kind: "package-group"
 <a id="packages"></a>
 ## 包
 
-本组只包含一个包；详细信息以该包的 README 和下方链接为准。
+本组包含两个包；详细信息以各包的 README 和下方链接为准。
 
 | 包 | 提供的能力 |
 |---|---|
 | [`mcp-client/`](mcp-client/README.zh.md) | 挂载一台外部 MCP 服务器，让模型可以把它的工具当作原生工具调用 |
+| [`mcp-servers/`](mcp-servers/README.zh.md) | 维护由设置驱动的服务器清单，把每台服务器经 `mcp-client` 挂载，并按需测试连通性 |
 
 -----
 
@@ -36,6 +37,7 @@ kind: "package-group"
 先用可运行的示例配置体验插件，再阅读 Agent Note 了解其背后的行为决策。
 
 - [MCP 客户端插件 Agent Note](../../.agents/notes/implemented/feature/2026-07-07-mcp-client-plugin.zh.md)——桥接的设计：服务器限定命名、发现、执行与环境清洗。
+- [MCP 设置页面 Agent Note](../../.agents/notes/implemented/feature/2026-09-17-mcp-settings-page.zh.md)——清单的设置模型、调和与连通性测试。
 - [第三方记忆 MCP 指南](../../docs/user/guide/mcp-memory.zh.md)——可运行的 overlay 配置行与设置说明。
 - [工具子系统参考](../../docs/subsystems/tools.zh.md)——接收已注册工具的 `ToolRuntime`。
 

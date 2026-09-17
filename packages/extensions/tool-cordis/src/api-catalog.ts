@@ -1317,6 +1317,49 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'mcpServers',
+    summary: 'MCP server roster: settings, reconciliation, and connectivity testing.',
+    description: 'MCP server roster: settings, reconciliation, and connectivity testing.',
+    methods: [
+      {
+        signature: '@Remote(\'list\') list(): Promise<McpServerSnapshot>',
+        description: 'Every configured server with its current mounted state.',
+        parameters: [],
+        returns: 'The complete roster snapshot.',
+      },
+      {
+        signature: '@Remote(\'add\') async add(draft: McpServerDraft, expectedRevision: number): Promise<McpServerSnapshot>',
+        description: 'Add one server. The Host assigns its id; `serverName` is fixed from here on.',
+        parameters: [{ name: 'draft', description: 'The new server\'s fields.' }, { name: 'expectedRevision', description: 'Revision the caller read.' }],
+        returns: 'The roster after the write.',
+      },
+      {
+        signature: '@Remote(\'update\') async update(id: string, patch: McpServerPatch, expectedRevision: number): Promise<McpServerSnapshot>',
+        description: 'Edit one server. The model-facing namespace is immutable and rejected here.',
+        parameters: [{ name: 'id', description: 'Roster entry to edit.' }, { name: 'patch', description: 'Fields and variable-level secret operations to apply.' }, { name: 'expectedRevision', description: 'Revision the caller read.' }],
+        returns: 'The roster after the write.',
+      },
+      {
+        signature: '@Remote(\'deleteServer\') async deleteServer(id: string, expectedRevision: number): Promise<McpServerSnapshot>',
+        description: 'Remove one server and release its namespace.',
+        parameters: [{ name: 'id', description: 'Roster entry to remove.' }, { name: 'expectedRevision', description: 'Revision the caller read.' }],
+        returns: 'The roster after the write.',
+      },
+      {
+        signature: '@Remote(\'setEnabled\') setEnabled(id: string, enabled: boolean, expectedRevision: number): Promise<McpServerSnapshot>',
+        description: 'Enable or disable one server without discarding its configuration.',
+        parameters: [{ name: 'id', description: 'Roster entry to toggle.' }, { name: 'enabled', description: 'Whether the entry should mount.' }, { name: 'expectedRevision', description: 'Revision the caller read.' }],
+        returns: 'The roster after the write.',
+      },
+      {
+        signature: '@Remote(\'testConnection\') async testConnection(target: McpTestTarget, signal: AbortSignal): Promise<McpConnectionTest>',
+        description: 'Test one server\'s connectivity without mounting it.\n\nA draft may be tested before it is saved; when it derives from a saved entry, that entry\'s stored secret values fill the draft\'s missing keys.',
+        parameters: [{ name: 'target', description: 'The form contents and the saved entry they derive from.' }, { name: 'signal', description: 'Caller cancellation, injected by the Gateway.' }],
+        returns: 'The test outcome; a failed server is reported, not thrown.',
+      },
+    ],
+  },
+  {
     key: 'messageFeedback',
     summary: 'Session-log service; cold operations never construct a Session or Agent.',
     description: 'Session-log service; cold operations never construct a Session or Agent.',
@@ -4609,6 +4652,46 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ManualCompactAgentContext',
     declaration: 'export interface ManualCompactAgentContext extends CompactionAgentContext {\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n}',
+  },
+  {
+    name: 'McpCapabilities',
+    declaration: 'export interface McpCapabilities {\n    canEdit: boolean;\n    testTimeoutMs: number;\n}',
+  },
+  {
+    name: 'McpConnectionTest',
+    declaration: 'export interface McpConnectionTest {\n    ok: boolean;\n    tools: string[];\n    error?: string;\n    at: number;\n    durationMs: number;\n}',
+  },
+  {
+    name: 'McpReconnectConfig',
+    declaration: 'export interface McpReconnectConfig {\n    enabled?: boolean;\n    initialDelayMs?: number;\n    maxDelayMs?: number;\n    maxAttempts?: number;\n}',
+  },
+  {
+    name: 'McpServerDraft',
+    declaration: 'export interface McpServerDraft extends Partial<McpServerFields> {\n    serverName: string;\n    transport: \'stdio\' | \'streamable-http\';\n}',
+  },
+  {
+    name: 'McpServerEntry',
+    declaration: 'export interface McpServerEntry {\n    id: string;\n    serverName: string;\n    enabled: boolean;\n    label: string;\n    transport: \'stdio\' | \'streamable-http\';\n    command: string;\n    args: string[];\n    cwd: string;\n    env: Record<string, string>;\n    url: string;\n    headers: Record<string, string>;\n    toolCallTimeoutMs: number;\n    failOnStartupError: boolean;\n    reconnect?: McpReconnectConfig;\n}',
+  },
+  {
+    name: 'McpServerFields',
+    declaration: 'export type McpServerFields = Omit<McpServerEntry, \'id\'>;',
+  },
+  {
+    name: 'McpServerPatch',
+    declaration: 'export interface McpServerPatch {\n    enabled?: boolean;\n    label?: string;\n    transport?: \'stdio\' | \'streamable-http\';\n    command?: string;\n    args?: string[];\n    cwd?: string;\n    env?: Record<string, string | null>;\n    url?: string;\n    headers?: Record<string, string | null>;\n    toolCallTimeoutMs?: number;\n    failOnStartupError?: boolean;\n    reconnect?: McpReconnectConfig;\n}',
+  },
+  {
+    name: 'McpServerSnapshot',
+    declaration: 'export interface McpServerSnapshot {\n    servers: McpServerView[];\n    revision: number;\n    capabilities: McpCapabilities;\n}',
+  },
+  {
+    name: 'McpServerView',
+    declaration: 'export interface McpServerView {\n    id: string;\n    serverName: string;\n    enabled: boolean;\n    label: string;\n    transport: \'stdio\' | \'streamable-http\';\n    command: string;\n    args: string[];\n    cwd: string;\n    envKeys: string[];\n    url: string;\n    headerKeys: string[];\n    toolCallTimeoutMs: number;\n    failOnStartupError: boolean;\n    reconnect?: McpReconnectConfig;\n    mounted: boolean;\n    lastTest?: McpConnectionTest;\n    mountError?: string;\n}',
+  },
+  {
+    name: 'McpTestTarget',
+    declaration: 'export interface McpTestTarget {\n    draft: McpServerDraft;\n    basedOn?: string;\n}',
   },
   {
     name: 'Message',
