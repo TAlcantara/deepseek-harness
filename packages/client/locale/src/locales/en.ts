@@ -37,6 +37,7 @@ export const en = {
   'json.collapseNode': 'Collapse JSON node',
   'json.expandNode': 'Expand JSON node',
   'json.label': 'JSON',
+  'markdown.diagram': 'Diagram',
   'markdown.footnotes': 'Footnotes',
   'markdown.truncatedCharacters': '… truncated at {total} characters',
   'number.thousand': '{value}K',

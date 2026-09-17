@@ -35,6 +35,7 @@ export const zh = {
   'json.collapseNode': '收起 JSON 节点',
   'json.expandNode': '展开 JSON 节点',
   'json.label': 'JSON',
+  'markdown.diagram': '图表',
   'markdown.footnotes': '脚注',
   'markdown.truncatedCharacters': '… 已截断，共 {total} 字符',
   'number.thousand': '{value}K',

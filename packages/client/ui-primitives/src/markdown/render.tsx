@@ -23,6 +23,7 @@ import type * as Md from 'mdast'
 import type {} from 'mdast-util-math'
 import { normalizeUri } from 'micromark-util-sanitize-uri'
 import { CodeBlock } from './CodeBlock.tsx'
+import { MermaidBlock } from './mermaid.tsx'
 import { renderTexToReact } from './katex.tsx'
 import { LinkIcon, classifyLinkPath } from '../LinkIcon.tsx'
 import type { PositionedBlock } from './incremental.ts'
@@ -40,6 +41,8 @@ export interface MarkdownCodeLabels {
 export interface MarkdownLabels {
   code: MarkdownCodeLabels
   footnotes: string
+  /** Accessible name for a fence this renderer draws as a diagram instead of code. */
+  diagram: string
 }
 
 function sanitizeUrl(url: string): string {
@@ -377,6 +380,12 @@ function renderCode(node: Md.Code, key: Key, context: MarkdownRenderContext): Re
     // ```math fences render as display TeX once settled (rehype-katex parity);
     // its text extraction saw the code block's trailing newline.
     return <Fragment key={key}>{renderTexToReact(`${node.value}\n`, true)}</Fragment>
+  }
+  if (!context.streaming && lang === 'mermaid') {
+    // Diagrams stay source while the reply streams: an incomplete fence cannot
+    // render, and re-rendering per chunk would repeat the parse for every
+    // intermediate state. The settled pass takes the whole fence at once.
+    return <MermaidBlock key={key} source={node.value} labels={context.labels} />
   }
   return (
     <CodeBlock

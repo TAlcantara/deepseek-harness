@@ -1,0 +1,37 @@
+/* Diagram-specific chrome on top of CodeBlock's shared fence surface. The
+   banner, surface, and copy control come from `CodeBlock.module.css`; these
+   rules add only what a rendered diagram needs beyond a code fence. */
+
+/* Placeholder wrapper for the pending/failed arm. It carries the code block,
+   which supplies its own margins and surface, so this element adds no box of
+   its own — it exists to give the viewport observer a stable target across the
+   placeholder-to-diagram swap. */
+.pending {
+  display: contents;
+}
+
+.block {
+  /* A diagram is wider than prose far more often than a code fence is; keep it
+     inside the message and let the canvas scroll. */
+  overflow: hidden;
+}
+
+.canvas {
+  display: flex;
+  justify-content: center;
+  padding: 12px 14px;
+  /* Diagram heights vary and the SVG is sized after it arrives; reserving a
+     floor keeps the swap from moving everything the reader already scrolled
+     past. */
+  min-height: 96px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Mermaid emits `width: 100%` plus a `max-width` in inline style; centering
+   the flex item keeps a narrow diagram from stretching and a wide one intact. */
+.canvas > :global(svg) {
+  flex: 0 0 auto;
+  max-width: 100%;
+  height: auto;
+}

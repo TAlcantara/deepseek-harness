@@ -4,6 +4,7 @@ export const zh = {
   'code.copy': '复制',
   'code.copied': '已复制',
   'footnotes': '脚注',
+  'diagram': '图表',
 } satisfies Record<string, string>
 
 /** Markdown namespace keys. */
@@ -15,6 +16,7 @@ export const en = {
   'code.copy': 'Copy',
   'code.copied': 'Copied',
   'footnotes': 'Footnotes',
+  'diagram': 'Diagram',
 } satisfies Record<MarkdownPreviewKey, string>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
