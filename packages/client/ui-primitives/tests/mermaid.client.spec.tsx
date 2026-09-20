@@ -10,6 +10,7 @@
 // which both weakens the specs and hides executed lines from coverage. Tests
 // therefore use their own fence sources and assert relative cache behavior.
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as Md from 'mdast'
 import { CACHE_LIMIT, MermaidBlock } from '../src/markdown/mermaid.tsx'
@@ -103,6 +104,18 @@ describe('MermaidBlock', () => {
     expect(view.container.querySelector('svg')).toBeNull()
     expect(view.container.querySelector('pre')).not.toBeNull()
     expect(mermaid.render).not.toHaveBeenCalled()
+  })
+
+  it('keeps the observed placeholder a real box', () => {
+    // These specs stub IntersectionObserver and jsdom has no layout, so a
+    // `display: contents` placeholder would pass every other test here while
+    // breaking production: the element reports a 0x0 rect, never intersects,
+    // and every diagram stays on the code arm forever. Pin the declaration.
+    const sheet = readFileSync('packages/client/ui-primitives/src/markdown/DiagramBlock.module.css', 'utf8')
+    const pending = /\.pending\s*\{([^}]*)\}/.exec(sheet)?.[1] ?? ''
+    expect(pending).not.toBe('')
+    expect(pending).not.toContain('display: contents')
+    expect(pending).toContain('display: block')
   })
 
   it('renders the SVG once activated, without any HTML island', async () => {

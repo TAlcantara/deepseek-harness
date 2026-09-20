@@ -48,4 +48,4 @@ Status: implemented
 
 ## Testing
 
-`tests/mermaid.client.spec.tsx` 把懒加载的 `import('mermaid')` 替换为桩，因为 jsdom 无法对 SVG 文本布局，覆盖了流式门、视口门、配置、失败回退、缓存复用与淘汰、实例 id 重写、卸载竞态与复制行为。正因为用了桩，证明 Mermaid 真能绘图的负担落在浏览器套件上：那里应当有一条带 `mermaid` fence 的 fixture。`tests/markdown-dom-parity.client.spec.tsx` 不新增 `mermaid` 用例：真实加载是非确定性的，而现有语料不含此类 fence，因此没有 fixture 漂移。
+`tests/mermaid.client.spec.tsx` 把懒加载的 `import('mermaid')` 替换为桩，因为 jsdom 无法对 SVG 文本布局，覆盖了流式门、视口门、配置、失败回退、缓存复用与淘汰、实例 id 重写、卸载竞态与复制行为。这个桩带来两个盲点，各自配有一道守卫。这些用例观察不到占位元素的盒子，因此有一条用例直接读取 `DiagramBlock.module.css` 并钉住占位元素的 `display` 声明：视口观察器盯的就是该元素，而没有盒子的它只会报告 0×0 矩形、永不进入相交状态，结果是每张图都停留在代码形态。这些用例同样无法证明 Mermaid 真能绘图，因此那份负担落在浏览器套件上：那里应当有一条带 `mermaid` fence 的 fixture。`tests/markdown-dom-parity.client.spec.tsx` 不新增 `mermaid` 用例：真实加载是非确定性的，而现有语料不含此类 fence，因此没有 fixture 漂移。

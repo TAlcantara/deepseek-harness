@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-17-web-mermaid-fences.md
-2026-09-17-web-mermaid-fences.md: 198497bdd3e92928a139a0cccdaaa67a4e18375b
-2026-09-17-web-mermaid-fences.zh.md: 54f0d8d1c6dc305b8d36e3a18f01f51a6d4b7f33
+2026-09-17-web-mermaid-fences.md: 25ab550dbfbfde4d2f45aa43edf145abeb9a4604
+2026-09-17-web-mermaid-fences.zh.md: 7f3f93cea83407241cc7371a9c7abed76b46353e

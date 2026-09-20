@@ -3,11 +3,14 @@
    rules add only what a rendered diagram needs beyond a code fence. */
 
 /* Placeholder wrapper for the pending/failed arm. It carries the code block,
-   which supplies its own margins and surface, so this element adds no box of
-   its own — it exists to give the viewport observer a stable target across the
-   placeholder-to-diagram swap. */
+   which supplies its own margins and surface, so this element adds no spacing of
+   its own — its child's margins collapse through it and the vertical rhythm
+   matches the rendered diagram's surface.
+   It must generate a box: the viewport observer watches this element, and
+   `display: contents` would leave it with a 0x0 rect that never reports an
+   intersection, so the diagram would never activate. */
 .pending {
-  display: contents;
+  display: block;
 }
 
 .block {
