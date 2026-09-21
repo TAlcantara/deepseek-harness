@@ -27,8 +27,11 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { CodeBlock, useViewportActivation, writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
-import { domToReact } from './dom-to-react.tsx'
+import { writeClipboard } from '../clipboard.ts'
+import { domToReact } from '../dom-to-react.tsx'
+import { useViewportActivation } from '../useViewportActivation.ts'
+import { CodeBlock } from './CodeBlock.tsx'
+import codeCss from './CodeBlock.module.css'
 import css from './DiagramBlock.module.css'
 
 /**
@@ -173,7 +176,8 @@ function svgToReact(svg: string): ReactNode | undefined {
 /**
  * Localized chrome for the diagram arm: the fence copy control plus the
  * rendered diagram's accessible name.
- */export interface MermaidBlockLabels {
+ */
+export interface MermaidBlockLabels {
   /** Copy-button idle label. */
   copyLabel: string
   /** Copy-button label during the post-copy confirmation window. */
@@ -238,7 +242,7 @@ export function MermaidBlock({ source, labels }: {
       >
         <CodeBlock
           code={`${source}\n`}
-          lang="mermaid"
+          lang={DIAGRAM_LANGUAGE}
           copyLabel={labels.copyLabel}
           copiedLabel={labels.copiedLabel}
         />
@@ -247,12 +251,12 @@ export function MermaidBlock({ source, labels }: {
   }
 
   return (
-    <div ref={rootRef} className={css.block} data-diagram-block data-diagram-state="ready">
-      <div className={css.bannerWrap}>
-        <div className={css.banner} data-code-block-banner>
-          <div className={css.infostring}>{DIAGRAM_LANGUAGE}</div>
-          <div className={css.action}>
-            <button type="button" className={css.copyButton} onClick={onCopy}>
+    <div ref={rootRef} className={`${codeCss.block} ${css.block}`} data-diagram-block data-diagram-state="ready">
+      <div className={codeCss.bannerWrap}>
+        <div className={codeCss.banner} data-code-block-banner>
+          <div className={codeCss.infostring}>{DIAGRAM_LANGUAGE}</div>
+          <div className={codeCss.action}>
+            <button type="button" className={codeCss.copyButton} onClick={onCopy}>
               {copied ? labels.copiedLabel : labels.copyLabel}
             </button>
           </div>

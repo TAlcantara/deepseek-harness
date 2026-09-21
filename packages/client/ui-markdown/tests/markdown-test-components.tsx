@@ -1,11 +1,13 @@
 import type { ComponentProps, ReactNode } from 'react'
-import { JsonBlock as LocalizedJsonBlock } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  JsonBlock as LocalizedJsonBlock,
+  MermaidBlock,
+  renderTexToReact,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownCodeLabels, MarkdownFenceRenderer, MarkdownFenceRequest, MarkdownLabels } from '../src/client/contract/slots.ts'
 import { MarkdownText as LocalizedMarkdownText } from '../src/client/markdown/MarkdownText.tsx'
 import { selectMath } from '../src/client/markdown/MathFence.tsx'
 import { selectMermaid } from '../src/client/markdown/MermaidFence.tsx'
-import { renderTexToReact } from '../src/client/markdown/katex.tsx'
-import { MermaidBlock } from '../src/client/markdown/mermaid.tsx'
 import { diagramLabels, markdownLabels as defaultMarkdownLabels } from './labels.client.ts'
 
 /**

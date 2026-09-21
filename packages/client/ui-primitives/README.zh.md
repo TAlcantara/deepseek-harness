@@ -53,6 +53,7 @@ kind: "package-library"
 | `Toast` | 顶部居中的瞬时横幅，保持时长由所有者的 `holdMs` 决定。 |
 | `JsonTree`、`JsonBlock` | 只读 JSON 查看。 |
 | `CodeBlock` | 高亮 fence 代码，并带有增量流式会话。可通过 `lineNumbers` 开启行号；复制的源码不含行号栏，`contentRef` 则向需要把稳定源码包装节点用作滚动区的 owner 提供该节点。 |
+| `MermaidBlock`、`renderTexToReact` | 两个绘制第三方库产物的 markdown 块：Mermaid fence 的 SVG 元素树，以及经 KaTeX 排版的 TeX。它们放在本包而不是功能插件里，因为动态插件 bundle 只发布一个文件、无法延后加载库——见[为何惰性渲染器是静态的](#why-the-lazy-renderers-are-static)。 |
 | `parseGfm`、`parseGfmWithMath`、`extractMarkdownPlainText` | 两套 mdast 语法及基于它们的纯文本投影；markdown 消费方用它们解析与投影。 |
 | `TerminalBlock`、`ReadBlock`、`DiffBlock`、`SearchBlock`、`WebBlock` | 与各类工具结果意图对应的 agent 输出卡片。 |
 | `icons/*`、`FishLogo`、`BrandWordmark`、`ReferenceIcon`、`LinkIcon` | 字形与品牌标识。`LinkIcon` 用于 14px 的可点击链接分类。 |
@@ -79,6 +80,11 @@ kind: "package-library"
 
 这些原子组件无法读取应用 locale，因此每段面向用户的文案都必须通过 label prop 提供。`HoverCard`、`TerminalBlock`、`JsonTree`、`CodeBlock`、`JsonBlock`、`ConnectionIndicator`、`Modal`、`DiffBlock`、`ReadBlock`、`SearchBlock` 与 `WebBlock` 接收完整的本地化 label。本包不拥有语言回退；遗漏会导致类型检查失败，各功能会把带类型的 `t` 席位映射到 primitive 的 label 接口。
 
+<a id="why-the-lazy-renderers-are-static"></a>
+### 为何惰性渲染器是静态的
+
+`MermaidBlock` 与 `renderTexToReact` 是两个功能插件无法自己拥有的 primitive。动态客户端插件只发布其 manifest 列出的文件——`lib/index.js`、`lib/client.js` 及其声明——因此其中的动态 `import()` 或裸第三方样式表都会让它自己的打包器产出发布闭包覆盖不到的 chunk 与资源文件；仅 Mermaid 的动态加载就会产生约一百个。在这个静态链接的包里两者都保持裸 specifier：`import('mermaid')` 交给 Web shell 自己的打包器，由它把 Mermaid 拆成首个图表才拉取的 chunk；KaTeX 的 `katex.min.css` 由 shell 构建合并。以这种方式渲染 fence 的功能插件拥有规则，并从本包组合该块。
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -94,7 +100,8 @@ kind: "package-library"
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 原子组件公开导出 |
-| [`src/markdown/`](src/markdown/) | mdast 语法与纯文本投影（`parse.ts`、`plain-text.ts`）、Shiki 高亮，以及 `CodeBlock`/`JsonBlock` |
+| [`src/markdown/`](src/markdown/) | mdast 语法与纯文本投影（`parse.ts`、`plain-text.ts`）、Shiki 高亮、`CodeBlock`/`JsonBlock`，以及惰性第三方块（`mermaid.tsx`、`katex.tsx`） |
+| [`src/dom-to-react.tsx`](src/dom-to-react.tsx) | 把解析后的 DOM 子树映射为 React 元素，这一步让第三方标记不会以原始 HTML 进入 React 树 |
 | [`src/markdown/useViewportHighlighting.ts`](src/markdown/useViewportHighlighting.ts) | 某个代码区域首次进入视口时激活其高亮工作 |
 | [`src/useViewportActivation.ts`](src/useViewportActivation.ts) | 文档级单例观察器：把昂贵的渲染工作推迟到该区域首次进入视口 |
 | [`src/TerminalBlock.tsx`](src/TerminalBlock.tsx) | ANSI 转义解析（`anser`）与终端卡片渲染 |
@@ -124,7 +131,7 @@ fence 增长期间，`CodeBlock` 从保存的 Shiki grammar state 续接高亮�
 
 - [ui-renderer](../ui-renderer/README.zh.md)——挂载组装后应用并绑定 slot 数据的 React 渲染器。
 - [ui-tool](../ui-tool/README.zh.md)——拼装这些输出卡片的工具调用展示层。
-- [ui-markdown](../ui-markdown/README.zh.md)——使用这些语法解析、并通过 `CodeBlock` 绘制 fence 的 markdown 渲染器。
+- [ui-markdown](../ui-markdown/README.zh.md)——使用这些语法解析、把 fence 派发给渲染规则，并通过 `CodeBlock` 与这里的惰性块绘制的 markdown 渲染器。
 - [ui-conversation](../ui-conversation/README.zh.md)——组合这些工具卡片的聊天界面。
 - [ui-theme](../ui-theme/README.zh.md)——这些原子组件样式所依赖的 `--dsw-*` token 体系。
 - [Web 样式](../../../docs/web-styling.zh.md)——Web 客户端组件的权威样式规则。

@@ -18,7 +18,7 @@ Status: implemented
 
 `@deepseek-ai/dsh-client-ui-markdown` 是一个动态客户端插件。它的 Host 半边为空；浏览器半边注册进 slot 注册表。Web bundle 把它作为一行普通条目挂载，因此部署方可以选择是否出现 markdown 渲染，而渲染规则以插件形式发布，而不是作为对壳的修改。
 
-`ui-primitives` 保持静态库，并保留不属于组合的部分：两套 mdast 语法（`parseGfm`、`parseGfmWithMath`）、纯文本投影（`extractMarkdownPlainText`）、Shiki 高亮、`CodeBlock` 与 `JsonBlock`。它不再导出 `MarkdownText` 或 markdown label 类型。
+`ui-primitives` 保持静态库，并保留不属于组合的全部内容：两套 mdast 语法（`parseGfm`、`parseGfmWithMath`）、纯文本投影（`extractMarkdownPlainText`）、Shiki 高亮、`CodeBlock`、`JsonBlock`，以及两个绘制第三方库产物的块（`MermaidBlock`、`renderTexToReact`）。它不再导出 `MarkdownText` 或 markdown label 类型。
 
 ### 每个渲染界面声明一个 markdown seat 与一个 fence seat
 
@@ -48,7 +48,7 @@ type MarkdownFenceRequest =
 
 一条规则把 `select` 函数与它的组件一起注册。`select(request)` 返回该规则的匹配值或 `null`；链上条目按注册顺序执行，第一个非 null 匹配负责渲染。命令、链接目标与图片目标永远不会到达该 seat，因此规则无法认领它们。
 
-插件自带两条规则。Mermaid 规则认领归一化语言 token 为 `mermaid` 的 fence。数学规则认领 `inline` 或 `display` 数学节点以及已落定的 `math` fence，并通过 KaTeX 排版。
+插件自带两条规则。Mermaid 规则认领归一化语言 token 为 `mermaid` 的 fence，并绘制 `ui-primitives` 的 `MermaidBlock`。数学规则认领 `inline` 或 `display` 数学节点以及已落定的 `math` fence，并通过 `ui-primitives` 的 `renderTexToReact` 排版。
 
 ### 被拒绝的请求保留渲染器的回退
 
@@ -68,7 +68,7 @@ seat 与两条规则都以 `locale: 'common'` 注册。它们拥有的外框文�
 
 **只发布一个共享 markdown seat，让每个界面都注册进去。** slot 模型规定一个 slot 名称恰好只有一个声明方；共享 seat 需要一个包为它并不拥有的界面声明洞，而各界面的 owner props 与 fence 渲染器将没有声明好的到达位置。逐界面配对让声明与渲染该位置的代码留在一起。
 
-**让每个界面自行注册内置规则。** 这能消除集中的注册成本，但 `ui-primitives` 无法承载规则组件，且任何功能插件都不得运行时导入另一个功能插件的值。它还会让数学与 Mermaid 规则按界面重复，并让各界面的渲染逐渐漂移。
+**让每个界面自行注册内置规则。** 这能消除集中的注册成本，但规则注册的是 slot，而只有插件会做这件事，且任何功能插件都不得运行时导入另一个功能插件的值。它还会让数学与 Mermaid 规则按界面重复，并让各界面的渲染逐渐漂移。
 
 **让 `WebBlock` 继续导入 `MarkdownText`。** `ui-primitives` 届时要么依赖渲染器包，要么保留第二套 markdown 渲染器，且调用方无法把答案渲染为纯文本或经由其他渲染器。
 
@@ -76,15 +76,15 @@ seat 与两条规则都以 `locale: 'common'` 注册。它们拥有的外框文�
 
 markdown 渲染成为一项组合选择：seat 与规则都来自一行插件条目，省略该行的部署仍会挂载各界面，只是没有它。规则作者支付固定的注册成本——每个 fence slot 一个条目，服务全部四个界面的规则需要四个。目前没有框架机制为插件枚举已声明的 fence seat，因此作者必须写出 slot 名称；把该列表发布出来要推迟到第二个规则包需要它时。
 
-图表分支在 `DiagramBlock.module.css` 中自带一份代码块 fence 外壳副本，因为插件不能导入另一个包的样式表。两份样式表必须保持逐字节兼容；这份副本换来的，是图表的横幅、复制按钮与画布能和普通 fence 出现在同一条消息里。
+两个第三方块留在 `ui-primitives`，因为动态插件 bundle 无法延后加载它们。它只发布一个 `lib/client.js`，因此其中的动态 `import()` 或裸第三方样式表会让它自己的打包器产出发布闭包覆盖不到的 chunk 与资源文件——仅 Mermaid 的动态加载就会产生约一百个——客户端构建中也没有任何环节会裁掉它们。把块保持为静态，就把 Mermaid 的 `import()` 与 KaTeX 的样式表交给 Web shell 自己的打包器，由它把 Mermaid 拆成惰性拉取的 chunk。需要自带这类库的规则必须先把库放到静态 owner 中。
 
 seat 的授权是 owner props 闭包，而不是框架发布的注册通道。界面必须把 `renderFence` 传进 seat，且该闭包的标识对流式渲染至关重要。
 
-`ui-primitives` 缩减为没有组合的部分：语法、纯文本投影、高亮，以及代码与 JSON 块。需要 markdown 的界面如今依赖插件条目，而它们的 markdown 外框文案来自共享命名空间，而不是各自的词典。
+`ui-primitives` 保留没有组合的部分：语法、纯文本投影、高亮、代码与 JSON 块，以及两个惰性加载的第三方块。需要 markdown 的界面如今依赖插件条目，而它们的 markdown 外框文案来自共享命名空间，而不是各自的词典。
 
 ## Verification
 
-`packages/client/ui-markdown/tests` 中的单元 spec 覆盖渲染器、内置规则、增量解析器、路径图片重写与手工构造的 mdast 树。`markdown-dom-parity.client.spec.tsx` 用 `tests/fixtures/markdown-dom` 逐字节固定渲染出的 DOM，因此标记不会漂移。
+`packages/client/ui-markdown/tests` 中的单元 spec 覆盖渲染器、内置规则、增量解析器、路径图片重写与手工构造的 mdast 树；两个静态块在 `packages/client/ui-primitives/tests` 保留各自的 spec。`plugin.client.spec.tsx` 在 `SlotTestRuntime` 上启动插件真实的 `apply`，断言 seat 与两条规则占满四个已声明的配对，渲染一份文档让图表与数学 fence 经由 chain seat 抵达规则，并 dispose fiber 观察全部贡献退出。`markdown-dom-parity.client.spec.tsx` 用 `tests/fixtures/markdown-dom` 逐字节固定渲染出的 DOM，因此标记不会漂移。
 
 面向产品的客户端插件要求一个非单元的真实组合测试（[包规则](../../../../packages/AGENTS.md)）。文档预览的 markdown 注册 spec 通过 `SlotTestRuntime` 启动插件的真实 `apply` 与该界面的真实 `apply`，断言 seat 通过声明的配对完成渲染，并释放该界面以观察 seat 随声明一起离开。在图层面，`apps/web/tests/built-boot.expected.e2e.ts` 的 assembled-boot 冒烟测试挂载随包发布的 bundle 名单，其中包含 `ui-markdown` 条目。
 

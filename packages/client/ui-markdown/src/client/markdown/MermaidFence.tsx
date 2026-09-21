@@ -2,14 +2,18 @@
  * Built-in fence rule: Mermaid diagrams. It claims a fence whose language
  * token is `mermaid` and renders the diagram block, which keeps the code arm
  * for the whole stream and replaces it once the diagram is built.
+ *
+ * The rule lives here; the block it draws is a statically linked primitive
+ * because Mermaid is loaded by dynamic `import()`, and a dynamic client bundle
+ * cannot defer a third-party library without emitting chunks of its own.
  */
 
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import { MermaidBlock, type MermaidBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownFenceRequest } from '../contract/slots.ts'
-import { MermaidBlock, type MermaidBlockLabels } from './mermaid.tsx'
 
 /** One diagram rule entry, typed against the canonical fence seat. */
 type MermaidFenceProps =

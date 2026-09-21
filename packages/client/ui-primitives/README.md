@@ -53,6 +53,7 @@ Check this table before writing a control in a feature package. A plugin cannot 
 | `Toast` | Transient top-center banner held for the owner's `holdMs`. |
 | `JsonTree`, `JsonBlock` | Read-only JSON inspection. |
 | `CodeBlock` | Highlighted fence code with an incremental streaming session. It accepts opt-in `lineNumbers`; copied source excludes the gutter, and `contentRef` exposes its stable source wrapper to an owner that uses it as a scrollport. |
+| `MermaidBlock`, `renderTexToReact` | The two markdown blocks that draw a third-party library's output: a Mermaid fence as an SVG element tree, and TeX through KaTeX. They live here rather than in a feature plugin because a dynamic plugin bundle publishes one file and cannot defer a library — see [why the lazy renderers are static](#why-the-lazy-renderers-are-static). |
 | `parseGfm`, `parseGfmWithMath`, `extractMarkdownPlainText` | The two mdast grammars and the plain-text projection over them; a markdown consumer parses and projects with these. |
 | `TerminalBlock`, `ReadBlock`, `DiffBlock`, `SearchBlock`, `WebBlock` | The agent-output card matching each tool-result intent. |
 | `icons/*`, `FishLogo`, `BrandWordmark`, `ReferenceIcon`, `LinkIcon` | Glyphs and brand marks. Use `LinkIcon` for 14px clickable-link categories. |
@@ -79,6 +80,11 @@ The catalog above lists what each export is for; this section covers the behavio
 
 The atoms cannot read the application locale, so every piece of user-facing copy arrives through required label props. `HoverCard`, `TerminalBlock`, `JsonTree`, `CodeBlock`, `JsonBlock`, `ConnectionIndicator`, `Modal`, `DiffBlock`, `ReadBlock`, `SearchBlock`, and `WebBlock` accept complete localized labels. The package owns no language fallback; omission fails typechecking, and each feature maps its typed `t` seat into the primitive's label interface.
 
+<a id="why-the-lazy-renderers-are-static"></a>
+### Why the lazy renderers are static
+
+`MermaidBlock` and `renderTexToReact` are the two primitives a feature plugin could not own. A dynamic client plugin publishes exactly the files its manifest lists — `lib/index.js`, `lib/client.js`, and its declarations — so a dynamic `import()` or a bare third-party stylesheet inside it would make its own bundler emit chunk and asset files that the publication closure cannot cover; Mermaid's dynamic load alone produces about a hundred. In this statically linked package both stay bare specifiers: `import('mermaid')` reaches the Web shell's own bundler, which splits Mermaid into a chunk fetched on first diagram, and KaTeX's `katex.min.css` is merged by the shell's build. A feature plugin that renders a fence this way owns the rule and composes the block from here.
+
 -----
 
 <a id="understand-the-implementation"></a>
@@ -94,7 +100,8 @@ The package enforces one separation: presentational React atoms with zero Cordis
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Public atom exports |
-| [`src/markdown/`](src/markdown/) | mdast grammars and plain-text projection (`parse.ts`, `plain-text.ts`), Shiki highlighting, and `CodeBlock`/`JsonBlock` |
+| [`src/markdown/`](src/markdown/) | mdast grammars and plain-text projection (`parse.ts`, `plain-text.ts`), Shiki highlighting, `CodeBlock`/`JsonBlock`, and the lazy third-party blocks (`mermaid.tsx`, `katex.tsx`) |
+| [`src/dom-to-react.tsx`](src/dom-to-react.tsx) | Maps a parsed DOM subtree onto React elements, the step that keeps third-party markup out of the React tree as raw HTML |
 | [`src/markdown/useViewportHighlighting.ts`](src/markdown/useViewportHighlighting.ts) | Activates one code surface's highlight work when it first intersects the viewport |
 | [`src/useViewportActivation.ts`](src/useViewportActivation.ts) | The document-wide observer that defers expensive render work until a surface first intersects the viewport |
 | [`src/TerminalBlock.tsx`](src/TerminalBlock.tsx) | ANSI escape parsing (`anser`) and terminal card rendering |
@@ -124,7 +131,7 @@ These pages place the atoms in the client stack and the design system.
 
 - [ui-renderer](../ui-renderer/README.md) — the React renderer that mounts the assembled application and binds slot data.
 - [ui-tool](../ui-tool/README.md) — the tool-call presentation layer that composes these output cards.
-- [ui-markdown](../ui-markdown/README.md) — the markdown renderer that parses with these grammars and draws fences through `CodeBlock`.
+- [ui-markdown](../ui-markdown/README.md) — the markdown renderer that parses with these grammars, dispatches fences to rendering rules, and draws them through `CodeBlock` and the lazy blocks here.
 - [ui-conversation](../ui-conversation/README.md) — the chat surface that composes these tool cards.
 - [ui-theme](../ui-theme/README.md) — the `--dsw-*` token system these atoms style through.
 - [Web styling](../../../docs/web-styling.md) — the authoritative styling rules for web client components.

@@ -4,13 +4,17 @@
  * math node — and typesets each through KaTeX, replicating the arms the
  * renderer used to hold directly (including a ```math fence's trailing
  * newline, which the replaced pipeline's text extraction saw).
+ *
+ * The rule lives here; the typesetter it calls is a statically linked
+ * primitive, because KaTeX's markup and its stylesheet belong to the static
+ * baseline every surface already loads.
  */
 
 import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+import { renderTexToReact } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownFenceRequest } from '../contract/slots.ts'
-import { renderTexToReact } from './katex.tsx'
 
 /** What the math rule's selector hands its component. */
 export interface MathMatch {

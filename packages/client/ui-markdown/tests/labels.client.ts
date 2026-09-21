@@ -1,5 +1,5 @@
+import type { MermaidBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '../src/client/contract/slots.ts'
-import type { MermaidBlockLabels } from '../src/client/markdown/mermaid.tsx'
 
 /** Document chrome for the specs that render markdown directly. */
 export const markdownLabels: MarkdownLabels = {

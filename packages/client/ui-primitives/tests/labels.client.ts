@@ -1,6 +1,7 @@
 import type {
   DiffBlockLabels,
   JsonTreeLabels,
+  MermaidBlockLabels,
   ReadBlockLabels,
   SearchBlockLabels,
   TerminalBlockLabels,
@@ -60,4 +61,9 @@ export const jsonTreeLabels: JsonTreeLabels = {
 export const webBlockLabels: WebBlockLabels = {
   noResults: '未找到结果', sourcesTruncated: '来源列表已截断',
   http: 'HTTP', contentTruncated: '内容已截断',
+}
+
+/** Diagram chrome for the specs that render a diagram block directly. */
+export const mermaidBlockLabels: MermaidBlockLabels = {
+  copyLabel: '复制', copiedLabel: '复制成功', diagram: '图表',
 }

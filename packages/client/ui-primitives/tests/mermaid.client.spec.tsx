@@ -12,11 +12,8 @@
 import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type * as Md from 'mdast'
-import { CACHE_LIMIT, MermaidBlock } from '../src/client/markdown/mermaid.tsx'
-import { createReferenceTargets, renderBlocks } from '../src/client/markdown/render.tsx'
-import { diagramLabels, markdownLabels } from './labels.client.ts'
-import { testRenderFence } from './markdown-test-components.tsx'
+import { CACHE_LIMIT, MermaidBlock } from '../src/markdown/mermaid.tsx'
+import { mermaidBlockLabels } from './labels.client.ts'
 
 const mermaid = vi.hoisted(() => ({ initialize: vi.fn(), render: vi.fn() }))
 
@@ -85,7 +82,7 @@ afterEach(() => {
 
 /** Mount one fence and hand back its placeholder element. */
 function mount(source: string) {
-  const view = render(<MermaidBlock source={source} labels={diagramLabels} />)
+  const view = render(<MermaidBlock source={source} labels={mermaidBlockLabels} />)
   const placeholder = view.container.querySelector('[data-diagram-block]')
   expect(placeholder).not.toBeNull()
   return { view, placeholder: placeholder as Element }
@@ -112,7 +109,7 @@ describe('MermaidBlock', () => {
     // `display: contents` placeholder would pass every other test here while
     // breaking production: the element reports a 0x0 rect, never intersects,
     // and every diagram stays on the code arm forever. Pin the declaration.
-    const sheet = readFileSync('packages/client/ui-markdown/src/client/markdown/DiagramBlock.module.css', 'utf8')
+    const sheet = readFileSync('packages/client/ui-primitives/src/markdown/DiagramBlock.module.css', 'utf8')
     const pending = /\.pending\s*\{([^}]*)\}/.exec(sheet)?.[1] ?? ''
     expect(pending).not.toBe('')
     expect(pending).not.toContain('display: contents')
@@ -125,7 +122,7 @@ describe('MermaidBlock', () => {
     // both the surface rule and the text rule resolves to whichever comes last.
     // The box then takes the text colour and its label vanishes into it. Every
     // class that carries both meanings must be element-qualified.
-    const source = readFileSync('packages/client/ui-markdown/src/client/markdown/mermaid.tsx', 'utf8')
+    const source = readFileSync('packages/client/ui-primitives/src/markdown/mermaid.tsx', 'utf8')
     const theme = /const DIAGRAM_THEME_CSS = `\n([\s\S]*?)\n`\.trim\(\)/.exec(source)?.[1] ?? ''
     expect(theme).not.toBe('')
 
@@ -190,7 +187,7 @@ describe('MermaidBlock', () => {
     expect(view.container.querySelector('pre')).not.toBeNull()
     // The failure is terminal: re-rendering the same instance must not re-run a
     // render that already failed.
-    view.rerender(<MermaidBlock source={source} labels={diagramLabels} />)
+    view.rerender(<MermaidBlock source={source} labels={mermaidBlockLabels} />)
     expect(mermaid.render).toHaveBeenCalledTimes(1)
   })
 
@@ -282,15 +279,15 @@ describe('MermaidBlock', () => {
     await waitFor(() => { expect(view.container.querySelector('svg')).not.toBeNull() })
 
     const button = view.container.querySelector('button')!
-    expect(button.textContent).toBe(diagramLabels.copyLabel)
+    expect(button.textContent).toBe(mermaidBlockLabels.copyLabel)
     // Fake timers only now: the confirmation window is the part under test.
     vi.useFakeTimers()
     fireEvent.click(button)
     expect(writeText).toHaveBeenCalledWith('graph TD\n  Copy --> Me')
     await act(async () => { await Promise.resolve() })
-    expect(button.textContent).toBe(diagramLabels.copiedLabel)
+    expect(button.textContent).toBe(mermaidBlockLabels.copiedLabel)
     await vi.advanceTimersByTimeAsync(1000)
-    expect(button.textContent).toBe(diagramLabels.copyLabel)
+    expect(button.textContent).toBe(mermaidBlockLabels.copyLabel)
   })
 
   it('does not claim a copy the host refused', async () => {
@@ -303,7 +300,7 @@ describe('MermaidBlock', () => {
     const button = view.container.querySelector('button')!
     fireEvent.click(button)
     await act(async () => { await Promise.resolve() })
-    expect(button.textContent).toBe(diagramLabels.copyLabel)
+    expect(button.textContent).toBe(mermaidBlockLabels.copyLabel)
   })
 
   it('evicts the least recently rendered source once the cache is full', async () => {
@@ -328,41 +325,5 @@ describe('MermaidBlock', () => {
     const retained = mount(sources[sources.length - 1]!)
     expect(retained.view.container.querySelector('svg')).not.toBeNull()
     expect(mermaid.render).toHaveBeenCalledTimes(sources.length + 1)
-  })
-})
-
-describe('renderCode mermaid gate', () => {
-  function renderFence(node: Md.Code, streaming: boolean): HTMLElement {
-    const { container } = render(<div>{renderBlocks(
-      [{ node, key: 0 }],
-      {
-        streaming,
-        labels: markdownLabels,
-        renderFence: testRenderFence,
-        fileMentions: undefined,
-        pathImages: undefined,
-        targets: createReferenceTargets(),
-        footnoteOrder: [],
-        footnoteCounts: new Map(),
-      },
-    )}</div>)
-    return container
-  }
-
-  it('keeps the fence as code while the reply streams', () => {
-    const container = renderFence({ type: 'code', lang: 'mermaid', value: 'graph TD\n  A --> B' }, true)
-    expect(container.querySelector('[data-diagram-block]')).toBeNull()
-    expect(container.querySelector('pre')).not.toBeNull()
-  })
-
-  it('takes the diagram arm on the settled pass', () => {
-    const container = renderFence({ type: 'code', lang: 'mermaid', value: 'graph TD\n  A --> B' }, false)
-    expect(container.querySelector('[data-diagram-block]')).not.toBeNull()
-    expect(container.querySelector('pre')).not.toBeNull()
-  })
-
-  it('leaves every other fence language on the code arm', () => {
-    const container = renderFence({ type: 'code', lang: 'ts', value: 'const a = 1' }, false)
-    expect(container.querySelector('[data-diagram-block]')).toBeNull()
   })
 })

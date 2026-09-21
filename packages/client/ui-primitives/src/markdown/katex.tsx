@@ -14,8 +14,10 @@
 
 import type { ReactNode } from 'react'
 import katex from 'katex'
+import { domChildrenToReact } from '../dom-to-react.tsx'
+// KaTeX's markup is unstyled without its own sheet, and this module is the only
+// renderer that emits that markup, so the sheet loads with it.
 import 'katex/dist/katex.min.css'
-import { domChildrenToReact } from './dom-to-react.tsx'
 
 /**
  * Render TeX source to React elements through KaTeX.

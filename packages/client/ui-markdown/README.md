@@ -80,9 +80,8 @@ The document renderer parses with the `ui-primitives` mdast grammars and walks t
 | [`src/client/markdown/MarkdownSeat.tsx`](src/client/markdown/MarkdownSeat.tsx) | The shared seat: binds `common` chrome and forwards the surface's fence renderer |
 | [`src/client/markdown/MarkdownText.tsx`](src/client/markdown/MarkdownText.tsx) | Settled and streaming rendering: incremental parse, frozen-block cache, footnote section |
 | [`src/client/markdown/render.tsx`](src/client/markdown/render.tsx) | The mdast→React switch, the untrusted-output policy, fence dispatch, and footnotes |
-| [`src/client/markdown/MathFence.tsx`](src/client/markdown/MathFence.tsx) | The math rule: claims three request kinds and typesets through [`katex.tsx`](src/client/markdown/katex.tsx) |
-| [`src/client/markdown/MermaidFence.tsx`](src/client/markdown/MermaidFence.tsx) | The diagram rule, over [`mermaid.tsx`](src/client/markdown/mermaid.tsx) and the SVG mapping in [`dom-to-react.tsx`](src/client/markdown/dom-to-react.tsx) |
-| [`src/client/markdown/DiagramBlock.module.css`](src/client/markdown/DiagramBlock.module.css) | The diagram arm's own copy of the code-block fence shell |
+| [`src/client/markdown/MathFence.tsx`](src/client/markdown/MathFence.tsx) | The math rule: claims three request kinds and typesets through `ui-primitives`' `renderTexToReact` |
+| [`src/client/markdown/MermaidFence.tsx`](src/client/markdown/MermaidFence.tsx) | The diagram rule, over `ui-primitives`' `MermaidBlock` |
 | [`src/index.ts`](src/index.ts) | Host half; the browser half carries every contribution |
 
 </details>
@@ -120,7 +119,7 @@ None; this package neither assembles nor sends a provider request.
 These limits define the fence-seat contract and the cost of contributing a rule; they are current package constraints.
 
 - **A rule registers once per fence slot** — one rule that serves all four surfaces needs four registrations, one into each `…markdown.fence` seat. No framework mechanism publishes the slot-name list, so a rule author names the seats explicitly.
-- **The diagram block repeats the code-block fence shell** — a plugin cannot import another package's stylesheet, so `DiagramBlock.module.css` carries its own copy of the fence-shell rules from `ui-primitives`' `CodeBlock.module.css`; the two sheets must stay byte-compatible.
+- **A rule's third-party renderer is statically linked** — a dynamic plugin bundle publishes one file, so a rule that defers a library with `import()` or imports a bare stylesheet would emit chunk and asset files its publication cannot cover. Mermaid and KaTeX therefore live in `ui-primitives`, and each rule here composes that block; see [why the lazy renderers are static](../ui-primitives/README.md#why-the-lazy-renderers-are-static).
 - **Fence dispatch runs on settled content only** — while a message streams, every fence keeps the code arm; only the settled pass asks the fence seat, so a rule cannot take over a growing fence.
 - **Streaming defers cross-boundary reference resolution** — a reference-style link or footnote whose definition sits on the other side of the incremental freeze boundary renders as literal text while the reply streams; the settled full parse at finalize resolves it.
 - **Categorical diagram palettes stay Mermaid's** — pie, mindmap, timeline, gitgraph, sankey, radar, treemap, and xychart colors encode categories rather than surface, so they keep the library palette and are baked at render: they follow neither `--dsw-*` tokens nor a live theme switch.

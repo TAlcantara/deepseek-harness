@@ -80,9 +80,8 @@ Mermaid 规则认领语言 token 为 `mermaid` 的 fence 并渲染图表；在�
 | [`src/client/markdown/MarkdownSeat.tsx`](src/client/markdown/MarkdownSeat.tsx) | 共享 seat：绑定 `common` 外框文案并转发界面的 fence 渲染器 |
 | [`src/client/markdown/MarkdownText.tsx`](src/client/markdown/MarkdownText.tsx) | 已落定与流式渲染：增量解析、冻结块缓存、脚注小节 |
 | [`src/client/markdown/render.tsx`](src/client/markdown/render.tsx) | mdast→React 分支、不受信任输出策略、fence 分派与脚注 |
-| [`src/client/markdown/MathFence.tsx`](src/client/markdown/MathFence.tsx) | 数学规则：认领三种请求，并通过 [`katex.tsx`](src/client/markdown/katex.tsx) 排版 |
-| [`src/client/markdown/MermaidFence.tsx`](src/client/markdown/MermaidFence.tsx) | 图表规则，基于 [`mermaid.tsx`](src/client/markdown/mermaid.tsx) 与 [`dom-to-react.tsx`](src/client/markdown/dom-to-react.tsx) 中的 SVG 映射 |
-| [`src/client/markdown/DiagramBlock.module.css`](src/client/markdown/DiagramBlock.module.css) | 图表分支自带的代码块 fence 外壳副本 |
+| [`src/client/markdown/MathFence.tsx`](src/client/markdown/MathFence.tsx) | 数学规则：认领三种请求，并通过 `ui-primitives` 的 `renderTexToReact` 排版 |
+| [`src/client/markdown/MermaidFence.tsx`](src/client/markdown/MermaidFence.tsx) | 图表规则，基于 `ui-primitives` 的 `MermaidBlock` |
 | [`src/index.ts`](src/index.ts) | Host 半边；浏览器半边承载全部贡献 |
 
 </details>
@@ -120,7 +119,7 @@ Mermaid 规则认领语言 token 为 `mermaid` 的 fence 并渲染图表；在�
 这些限制定义 fence seat 契约与贡献一条规则的成本；它们是当前包约束。
 
 - **一条规则需为每个 fence slot 注册一次**——服务于全部四个界面的规则需要四次注册，每个 `…markdown.fence` seat 一次。目前没有框架机制发布 slot 名称列表，因此规则作者必须显式写出这些 seat。
-- **图表块重复了代码块 fence 外壳**——插件不能导入另一个包的样式表，因此 `DiagramBlock.module.css` 自带一份来自 `ui-primitives` 的 `CodeBlock.module.css` 的 fence 外壳规则副本；两份样式表必须保持逐字节兼容。
+- **规则的第三方渲染器是静态链接的**——动态插件 bundle 只发布一个文件，因此用 `import()` 延后加载库、或导入裸样式表的规则会产出其发布闭包覆盖不到的 chunk 与资源文件。Mermaid 与 KaTeX 因此放在 `ui-primitives`，本包的规则组合该块；见[为何惰性渲染器是静态的](../ui-primitives/README.zh.md#why-the-lazy-renderers-are-static)。
 - **Fence 分派只处理已落定内容**——消息流式输出期间，每个 fence 都保留代码分支；只有已落定的一趟会询问 fence seat，因此规则无法接管仍在增长的 fence。
 - **流式期间跨边界引用解析被推迟**——引用式链接或脚注的定义位于增量冻结边界的另一侧时，会在回复流式输出期间按字面文本渲染；收尾时的已落定完整解析会修正它。
 - **分类图表调色板仍使用 Mermaid 自带方案**——pie、mindmap、timeline、gitgraph、sankey、radar、treemap 与 xychart 的颜色编码的是类别而非表面，因此它们保留库自带调色板并在渲染时固化：既不跟随 `--dsw-*` token，也不跟随实时主题切换。
