@@ -364,11 +364,14 @@
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
 
-    # The markdown renderer and its built-in fence rules: the seat every
-    # markdown surface declares, plus the math and Mermaid rules that fill
-    # those surfaces' fence seats.
+    # The markdown renderer: the seat every markdown surface declares.
     - id: ui-markdown
       name: '@deepseek-ai/dsh-client-ui-markdown'
+
+    # The built-in fence rules that fill those surfaces' fence seats. A
+    # deployment that omits this row renders every fence as code.
+    - id: ui-markdown-rules
+      name: '@deepseek-ai/dsh-client-ui-markdown-rules'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

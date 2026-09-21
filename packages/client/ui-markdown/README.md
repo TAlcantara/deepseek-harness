@@ -1,5 +1,5 @@
 ---
-description: "Markdown document rendering for the dsh web client: the shared markdown seat every surface fills and the pluggable fence rules for TeX math and Mermaid diagrams."
+description: "Markdown document rendering for the dsh web client: the shared markdown seat every surface fills and the fence seat rule contributions register into."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Render authored markdown in the Web client and add fence rendering rules without touching the document renderer. Chat, the question composer, the trajectory view, and the document preview each declare a markdown seat plus a fence seat; this package fills both and registers the built-in TeX math and Mermaid rules. A rule claims a fence or math node through a selector; an unclaimed request keeps the renderer's fallback, a highlighted code block for a fence or the authored source for math. Raw HTML and unsafe link and image protocols stay blocked.
+Render authored markdown in the Web client and dispatch each fence through a pluggable rule chain. Chat, the question composer, the trajectory view, and the document preview each declare a markdown seat plus a fence seat; this package fills the seat and owns the document renderer. A rule claims a fence or math node through a selector; an unclaimed request keeps the renderer's fallback, the code arm for a fence or the authored source for math. The built-in TeX math and Mermaid rules live in the separate [ui-markdown-rules](../ui-markdown-rules/README.md) package. Raw HTML and unsafe link and image protocols stay blocked.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ Render authored markdown in the Web client and add fence rendering rules without
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the plugin as one composition row, and every surface that declares a markdown pair gains a renderer plus the two built-in fence rules. The surface declares the pair; this package fills it.
+Mount the plugin as one composition row, and every surface that declares a markdown pair gains the shared renderer. The surface declares the pair; this package fills the markdown seat and dispatches its fences.
 
 ### The markdown pairs
 
@@ -44,9 +44,9 @@ The renderer dispatches one `MarkdownFenceRequest` per settled fence and per mat
 
 A rule is a `select` function plus a component. The selector returns the matched value or `null`; entry selectors run in chain order, and the first rule that returns a value renders the node. A request no rule claims keeps the renderer's fallback: the highlighted code arm for a fence, the authored source for math.
 
-### Built-in rules
+### Fence rules
 
-The Mermaid rule claims a fence whose language token is `mermaid` and renders the diagram, keeping the code arm while the message streams, while the diagram is pending, and after a failed render. The math rule claims inline and display math nodes and a `math` fence, and typesets each through KaTeX; a `math` fence renders as display TeX.
+This package ships no rules, so a fence or math node no rule claims keeps the renderer's fallback. The built-in TeX math and Mermaid rules are the separate [ui-markdown-rules](../ui-markdown-rules/README.md) package, which is the worked example of a rule contribution.
 
 ### Minimal configuration
 
@@ -57,7 +57,7 @@ The plugin accepts no `Config`. A composition mounts it as one row:
   name: '@deepseek-ai/dsh-client-ui-markdown'
 ```
 
-The browser half injects the slot registry and the shared locale service, and waits on each surface's declaration, so this plugin and the surfaces load in either order. Registration copy rides the `common` locale namespace — `copy`, `copied`, `markdown.footnotes`, and `markdown.diagram` are cross-feature vocabulary the `locale` plugin already owns.
+The browser half injects the slot registry and the shared locale service, and waits on each surface's declaration, so this plugin and the surfaces load in either order. Registration copy rides the `common` locale namespace — `copy`, `copied`, and `markdown.footnotes` are cross-feature vocabulary the `locale` plugin already owns.
 
 -----
 
@@ -67,21 +67,19 @@ The browser half injects the slot registry and the shared locale service, and wa
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The package contributes two things to the slot registry, and the surface declares both seats. One `MarkdownSeat` component serves all four markdown seats: it binds the `common` chrome copy and forwards the fence renderer the declaring surface passed in its owner props. The surface owns that callback's identity, because the streaming render cache is keyed on it.
+The package contributes one component to the slot registry, and the surface declares both seats. `MarkdownSeat` serves all four markdown seats: it binds the `common` chrome copy and forwards the fence renderer the declaring surface passed in its owner props. The surface owns that callback's identity, because the streaming render cache is keyed on it.
 
-The document renderer parses with the `ui-primitives` mdast grammars and walks the tree directly. While a message streams it freezes all but the trailing two blocks as cached React elements and re-parses only the tail; the settled pass asks the fence seat once per fence, while math nodes dispatch on every pass. Untrusted output keeps its policy: link and image destinations pass a protocol allowlist, raw HTML renders as literal text, and KaTeX runs without trusted commands.
+The document renderer parses with the `ui-primitives` mdast grammars and walks the tree directly. While a message streams it freezes all but the trailing two blocks as cached React elements and re-parses only the tail; the settled pass asks the fence seat once per fence, while math nodes dispatch on every pass. Untrusted output keeps its policy: link and image destinations pass a protocol allowlist, and raw HTML renders as literal text.
 
 ### Source map
 
 | File | Role |
 |---|---|
-| [`src/client/apply.ts`](src/client/apply.ts) | Fills every markdown seat and registers the two built-in rules into every fence seat |
+| [`src/client/apply.ts`](src/client/apply.ts) | Fills every markdown seat with the shared component |
 | [`src/client/contract/slots.ts`](src/client/contract/slots.ts) | The four seat pairs, the request union, the owner props, and the seat renderer type |
 | [`src/client/markdown/MarkdownSeat.tsx`](src/client/markdown/MarkdownSeat.tsx) | The shared seat: binds `common` chrome and forwards the surface's fence renderer |
 | [`src/client/markdown/MarkdownText.tsx`](src/client/markdown/MarkdownText.tsx) | Settled and streaming rendering: incremental parse, frozen-block cache, footnote section |
 | [`src/client/markdown/render.tsx`](src/client/markdown/render.tsx) | The mdast→React switch, the untrusted-output policy, fence dispatch, and footnotes |
-| [`src/client/markdown/MathFence.tsx`](src/client/markdown/MathFence.tsx) | The math rule: claims three request kinds and typesets through `ui-primitives`' `renderTexToReact` |
-| [`src/client/markdown/MermaidFence.tsx`](src/client/markdown/MermaidFence.tsx) | The diagram rule, over `ui-primitives`' `MermaidBlock` |
 | [`src/index.ts`](src/index.ts) | Host half; the browser half carries every contribution |
 
 </details>
@@ -91,8 +89,9 @@ The document renderer parses with the `ui-primitives` mdast grammars and walks t
 <a id="further-exploration"></a>
 ## Further Exploration
 
-These pages own the parser, the declaring surfaces, and the slot mechanism.
+These pages own the rules that mount alongside, the parser, the declaring surfaces, and the slot mechanism.
 
+- [ui-markdown-rules](../ui-markdown-rules/README.md) — the built-in TeX math and Mermaid fence rules.
 - [ui-primitives](../ui-primitives/README.md) — the mdast grammars, plain-text projection, and `CodeBlock` the renderer builds on.
 - [ui-chat](../ui-chat/README.md) — declares the Chat markdown pair.
 - [ui-user-questions](../ui-user-questions/README.md) — declares the composer markdown pair.
@@ -116,14 +115,10 @@ None; this package neither assembles nor sends a provider request.
 <a id="known-limitations-and-deferred-work"></a>
 
 
-These limits define the fence-seat contract and the cost of contributing a rule; they are current package constraints.
+These limits define the seat contract and the renderer's streaming behaviour; they are current package constraints.
 
-- **A rule registers once per fence slot** — one rule that serves all four surfaces needs four registrations, one into each `…markdown.fence` seat. No framework mechanism publishes the slot-name list, so a rule author names the seats explicitly.
-- **A rule's third-party renderer is statically linked** — a dynamic plugin bundle publishes one file, so a rule that defers a library with `import()` or imports a bare stylesheet would emit chunk and asset files its publication cannot cover. Mermaid and KaTeX therefore live in `ui-primitives`, and each rule here composes that block; see [why the lazy renderers are static](../ui-primitives/README.md#why-the-lazy-renderers-are-static).
-- **Fence dispatch runs on settled content only** — while a message streams, every fence keeps the code arm; only the settled pass asks the fence seat, so a rule cannot take over a growing fence.
+- **Fence dispatch runs on settled content only** — while a message streams, every fence keeps the code arm; only the settled pass asks the fence seat, so no rule can take over a growing fence.
 - **Streaming defers cross-boundary reference resolution** — a reference-style link or footnote whose definition sits on the other side of the incremental freeze boundary renders as literal text while the reply streams; the settled full parse at finalize resolves it.
-- **Categorical diagram palettes stay Mermaid's** — pie, mindmap, timeline, gitgraph, sankey, radar, treemap, and xychart colors encode categories rather than surface, so they keep the library palette and are baked at render: they follow neither `--dsw-*` tokens nor a live theme switch.
-- **`htmlLabels: false` costs label wrapping** — a diagram label longer than its node overflows instead of wrapping. The setting is what keeps a diagram's output a pure SVG vocabulary with no HTML island.
 
 <a id="dev-note"></a>
 ### Dev Note

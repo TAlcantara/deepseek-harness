@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-21-pluggable-markdown-fences.md
-2026-09-21-pluggable-markdown-fences.md: c696cb03a27583875635aa8f3aec2cce813cf417
-2026-09-21-pluggable-markdown-fences.zh.md: f4617b4410441c0f9c9125c2f0ad363d50e2203c
+2026-09-21-pluggable-markdown-fences.md: 213497b18dd87eb48fd52d763b02480b89f403cb
+2026-09-21-pluggable-markdown-fences.zh.md: d402786720483cfa91619368acc831202bf20532

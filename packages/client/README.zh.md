@@ -40,6 +40,7 @@ kind: "package-group"
 | [`ui-theme/`](ui-theme/README.zh.md) | 应用所选颜色主题 | — |
 | [`ui-primitives/`](ui-primitives/README.zh.md) | 提供共享 React 控件、图标与内容渲染器 | — |
 | [`ui-markdown/`](ui-markdown/README.zh.md) | 渲染作者撰写的 markdown，并把 fence 分派给可插拔规则 | — |
+| [`ui-markdown-rules/`](ui-markdown-rules/README.zh.md) | 把内置的 markdown fence 规则（TeX 数学、Mermaid）注册进每个界面的 fence seat | — |
 | [`ui-attachment/`](ui-attachment/README.zh.md) | 注册输入框与消息图片的附件呈现 | — |
 | [`ui-layout/`](ui-layout/README.zh.md) | 排列应用的主要区域 | — |
 | [`ui-sidebar/`](ui-sidebar/README.zh.md) | 展示工作区与会话导航 | — |

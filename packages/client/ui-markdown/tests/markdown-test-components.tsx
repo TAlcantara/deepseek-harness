@@ -6,8 +6,10 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownCodeLabels, MarkdownFenceRenderer, MarkdownFenceRequest, MarkdownLabels } from '../src/client/contract/slots.ts'
 import { MarkdownText as LocalizedMarkdownText } from '../src/client/markdown/MarkdownText.tsx'
-import { selectMath } from '../src/client/markdown/MathFence.tsx'
-import { selectMermaid } from '../src/client/markdown/MermaidFence.tsx'
+// The built-in rules live in their own plugin; this fixture composes them so the
+// renderer's specs exercise the dispatch a real surface performs.
+import { selectMath } from '../../ui-markdown-rules/src/client/rules/MathFence.tsx'
+import { selectMermaid } from '../../ui-markdown-rules/src/client/rules/MermaidFence.tsx'
 import { diagramLabels, markdownLabels as defaultMarkdownLabels } from './labels.client.ts'
 
 /**

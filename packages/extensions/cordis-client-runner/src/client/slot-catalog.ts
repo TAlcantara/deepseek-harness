@@ -305,8 +305,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'conversation.view\' (client-ui-chat), so it exists while that entry is mounted',
     occupants: [
-      'client-ui-markdown MermaidFence',
-      'client-ui-markdown MathFence',
+      'client-ui-markdown-rules MermaidFence',
+      'client-ui-markdown-rules MathFence',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.markdown.fence\', () => ctx.slots.register(\n      { name: \'conversation.chat.markdown.fence\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -653,8 +653,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'conversation.composer\' (client-ui-user-questions), so it exists while that entry is mounted',
     occupants: [
-      'client-ui-markdown MermaidFence',
-      'client-ui-markdown MathFence',
+      'client-ui-markdown-rules MermaidFence',
+      'client-ui-markdown-rules MathFence',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer.markdown.fence\', () => ctx.slots.register(\n      { name: \'conversation.composer.markdown.fence\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -1555,8 +1555,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'conversation.view\' (client-ui-trajectory), so it exists while that entry is mounted',
     occupants: [
-      'client-ui-markdown MermaidFence',
-      'client-ui-markdown MathFence',
+      'client-ui-markdown-rules MermaidFence',
+      'client-ui-markdown-rules MathFence',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.trajectory.markdown.fence\', () => ctx.slots.register(\n      { name: \'conversation.trajectory.markdown.fence\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -2713,8 +2713,8 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'sidebar.right.tab.document\' (client-ui-sidebar-documentpreview), so it exists while that entry is mounted',
     occupants: [
-      'client-ui-markdown MermaidFence',
-      'client-ui-markdown MathFence',
+      'client-ui-markdown-rules MermaidFence',
+      'client-ui-markdown-rules MathFence',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.right.tab.document.markdown.fence\', () => ctx.slots.register(\n      { name: \'sidebar.right.tab.document.markdown.fence\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',

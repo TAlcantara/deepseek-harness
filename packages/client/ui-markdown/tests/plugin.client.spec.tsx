@@ -1,11 +1,10 @@
 // @vitest-environment jsdom
 /**
- * The markdown plugin as a whole: it fills every surface's markdown pair with
- * one seat and its built-in fence rules, dispatch reaches those rules through
- * the real slot registry, and unloading the plugin releases every contribution.
- *
- * Diagrams never activate here — activation would start the real Mermaid load —
- * so the observer is inert and the diagram assertions read the fence shell.
+ * The markdown renderer as a composition: this plugin fills each surface's
+ * markdown seat, the rules plugin fills the fence seat beside it, and a
+ * document rendered through the pair reaches both. Diagrams never activate
+ * here — activation would start the real Mermaid load — so the observer is
+ * inert and the diagram assertions read the fence shell.
  */
 import { act } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -13,11 +12,12 @@ import { COMMON_NS, LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
+import { apply as applyRules, inject as injectRules } from '../../ui-markdown-rules/src/client/index.ts'
 import type { MarkdownSeatOwnerProps } from '../src/client/contract/slots.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { apply as nodeApply } from '../src/index.ts'
 
-/** Every surface pair the plugin fills: one seat and one fence chain each. */
+/** Every surface pair the two plugins fill: one seat and one fence chain each. */
 const PAIRS = [
   'conversation.chat.markdown',
   'conversation.composer.markdown',
@@ -49,8 +49,8 @@ afterEach(async () => {
 
 /**
  * Assemble a runtime with a real locale and a root frame declaring every
- * markdown pair, then mount the plugin onto it.
- * @returns The runtime, the plugin's fiber handle, and the bound locale.
+ * markdown pair, then mount both halves of the rendering.
+ * @returns The runtime, both fiber handles, and the bound locale.
  */
 async function mountMarkdown() {
   const runtime = await SlotTestRuntime.create()
@@ -61,7 +61,8 @@ async function mountMarkdown() {
   locale.register(COMMON_NS, { zh: commonZh, en: commonEn })
   locale.setLocale('en')
   await runtime.sessions.add({ id: 'markdown-plugin' })
-  const feature = await runtime.mount({ inject: [...inject], apply })
+  const renderer = await runtime.mount({ inject: [...inject], apply })
+  const rules = await runtime.mount({ inject: [...injectRules], apply: applyRules })
   await runtime.root.declare(
     {
       'conversation.chat.markdown': { kind: 'single', scope: 'session' },
@@ -81,24 +82,24 @@ async function mountMarkdown() {
       }, { fallback: <span data-missing-markdown /> })}</div>
     ),
   )
-  return { runtime, feature, locale }
+  return { runtime, renderer, rules, locale }
 }
 
-describe('markdown plugin registration', () => {
-  it('fills every surface pair once the surface declares it, and releases all of it', async () => {
+describe('markdown renderer plugin', () => {
+  it('fills every surface seat once the surface declares it, and releases it', async () => {
     seatOwner = { text: '# Title', streaming: false }
-    const { runtime, feature } = await mountMarkdown()
+    const { runtime, renderer } = await mountMarkdown()
     for (const name of PAIRS) {
       expect(runtime.slots.entries(name)).toHaveLength(1)
-      // Both built-in rules occupy each fence chain; the chain elects by
-      // selector, not by registration order.
+      // The rules plugin occupied the fence seat beside it, and it stays:
+      // the surface declared that slot, not this plugin.
       expect(runtime.slots.entries(`${name}.fence`)).toHaveLength(2)
     }
 
-    await feature.dispose()
+    await renderer.dispose()
     for (const name of PAIRS) {
       expect(runtime.slots.entries(name)).toEqual([])
-      expect(runtime.slots.entries(`${name}.fence`)).toEqual([])
+      expect(runtime.slots.entries(`${name}.fence`)).toHaveLength(2)
     }
   })
 
@@ -118,6 +119,24 @@ describe('markdown plugin registration', () => {
     // And the math rule typeset the display node.
     expect(view.container.querySelector('.katex')).not.toBeNull()
     expect(view.container.querySelector('[data-missing-markdown]')).toBeNull()
+  })
+
+  it('leaves the seat unfilled when only the rules are mounted', async () => {
+    seatOwner = { text: '# Notes', streaming: false }
+    const runtime = await SlotTestRuntime.create()
+    runtimes.push(runtime)
+    const locale = new LocaleRuntime(runtime.ctx)
+    runtime.ctx.provide('locale', locale)
+    runtime.slots.installLocale(locale)
+    await runtime.sessions.add({ id: 'markdown-rules-only' })
+    await runtime.mount({ inject: [...injectRules], apply: applyRules })
+    await runtime.declare({ 'conversation.chat.markdown': { kind: 'single', scope: 'session' } })
+    const view = runtime.renderSlot('conversation.chat.markdown', {
+      ...seatOwner,
+      renderFence: () => null,
+    }, { fallback: <span data-missing-markdown /> })
+
+    expect(view.container.querySelector('[data-missing-markdown]')).not.toBeNull()
   })
 
   it('leaves a fence on the code arm while the reply streams', async () => {
@@ -140,7 +159,7 @@ describe('markdown plugin registration', () => {
   })
 })
 
-describe('markdown plugin node half', () => {
+describe('markdown renderer plugin node half', () => {
   it('has no host behavior to apply', () => {
     expect(() => { nodeApply() }).not.toThrow()
   })

@@ -6,9 +6,9 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type * as Md from 'mdast'
-import { createReferenceTargets, renderBlocks } from '../src/client/markdown/render.tsx'
-import { markdownLabels } from './labels.client.ts'
-import { testRenderFence } from './markdown-test-components.tsx'
+import { createReferenceTargets, renderBlocks } from '../../ui-markdown/src/client/markdown/render.tsx'
+import { markdownLabels } from '../../ui-markdown/tests/labels.client.ts'
+import { testRenderFence } from '../../ui-markdown/tests/markdown-test-components.tsx'
 
 /** Never fires: the block stays on its placeholder arm for the whole spec. */
 class InertIntersectionObserver {

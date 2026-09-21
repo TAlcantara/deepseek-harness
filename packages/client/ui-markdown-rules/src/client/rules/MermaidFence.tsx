@@ -13,7 +13,7 @@ import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { MermaidBlock, type MermaidBlockLabels } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { MarkdownFenceRequest } from '../contract/slots.ts'
+import type { MarkdownFenceRequest } from '@deepseek-ai/dsh-client-ui-markdown/client'
 
 /** One diagram rule entry, typed against the canonical fence seat. */
 type MermaidFenceProps =

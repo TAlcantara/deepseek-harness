@@ -16,7 +16,9 @@ Status: implemented
 
 ### markdown 组合移入动态插件
 
-`@deepseek-ai/dsh-client-ui-markdown` 是一个动态客户端插件。它的 Host 半边为空；浏览器半边注册进 slot 注册表。Web bundle 把它作为一行普通条目挂载，因此部署方可以选择是否出现 markdown 渲染，而渲染规则以插件形式发布，而不是作为对壳的修改。
+`@deepseek-ai/dsh-client-ui-markdown` 是一个动态客户端插件。它的 Host 半边为空；浏览器半边把共享 markdown seat 注册进 slot 注册表。Web bundle 把它作为一行普通条目挂载，因此部署方可以选择是否出现 markdown 渲染，而渲染规则以插件形式发布，而不是作为对壳的修改。
+
+`@deepseek-ai/dsh-client-ui-markdown-rules` 是第二个动态客户端插件，在同一 bundle 中紧接渲染器一行。它把两条内置规则注册进渲染器所分派的四个 fence seat，因此省略规则行的部署仍保留 markdown 渲染，并让每个 fence 留在渲染器的回退上。内置规则是规则贡献的样板示例。
 
 `ui-primitives` 保持静态库，并保留不属于组合的全部内容：两套 mdast 语法（`parseGfm`、`parseGfmWithMath`）、纯文本投影（`extractMarkdownPlainText`）、Shiki 高亮、`CodeBlock`、`JsonBlock`，以及两个绘制第三方库产物的块（`MermaidBlock`、`renderTexToReact`）。它不再导出 `MarkdownText` 或 markdown label 类型。
 
@@ -48,7 +50,7 @@ type MarkdownFenceRequest =
 
 一条规则把 `select` 函数与它的组件一起注册。`select(request)` 返回该规则的匹配值或 `null`；链上条目按注册顺序执行，第一个非 null 匹配负责渲染。命令、链接目标与图片目标永远不会到达该 seat，因此规则无法认领它们。
 
-插件自带两条规则。Mermaid 规则认领归一化语言 token 为 `mermaid` 的 fence，并绘制 `ui-primitives` 的 `MermaidBlock`。数学规则认领 `inline` 或 `display` 数学节点以及已落定的 `math` fence，并通过 `ui-primitives` 的 `renderTexToReact` 排版。
+两条内置规则随 `@deepseek-ai/dsh-client-ui-markdown-rules` 发布，在 Web bundle 中紧接渲染器一行。Mermaid 规则认领归一化语言 token 为 `mermaid` 的 fence，并绘制 `ui-primitives` 的 `MermaidBlock`。数学规则认领 `inline` 或 `display` 数学节点以及已落定的 `math` fence，并通过 `ui-primitives` 的 `renderTexToReact` 排版。
 
 ### 被拒绝的请求保留渲染器的回退
 
@@ -74,7 +76,7 @@ seat 与两条规则都以 `locale: 'common'` 注册。它们拥有的外框文�
 
 ## Consequences
 
-markdown 渲染成为一项组合选择：seat 与规则都来自一行插件条目，省略该行的部署仍会挂载各界面，只是没有它。规则作者支付固定的注册成本——每个 fence slot 一个条目，服务全部四个界面的规则需要四个。目前没有框架机制为插件枚举已声明的 fence seat，因此作者必须写出 slot 名称；把该列表发布出来要推迟到第二个规则包需要它时。
+markdown 渲染成为一项组合选择：seat 与规则来自相互独立的插件行，省略渲染器行的部署仍会挂载各界面，只是没有它，而只省略规则行的部署保留 markdown 渲染，并让每个 fence 留在回退上。规则作者支付固定的注册成本——每个 fence slot 一个条目，服务全部四个界面的规则需要四个。目前没有框架机制为插件枚举已声明的 fence seat，因此作者必须写出 slot 名称；把该列表发布出来要推迟到第二个规则包需要它时。
 
 两个第三方块留在 `ui-primitives`，因为动态插件 bundle 无法延后加载它们。它只发布一个 `lib/client.js`，因此其中的动态 `import()` 或裸第三方样式表会让它自己的打包器产出发布闭包覆盖不到的 chunk 与资源文件——仅 Mermaid 的动态加载就会产生约一百个——客户端构建中也没有任何环节会裁掉它们。把块保持为静态，就把 Mermaid 的 `import()` 与 KaTeX 的样式表交给 Web shell 自己的打包器，由它把 Mermaid 拆成惰性拉取的 chunk。需要自带这类库的规则必须先把库放到静态 owner 中。
 
@@ -84,8 +86,8 @@ seat 的授权是 owner props 闭包，而不是框架发布的注册通道。�
 
 ## Verification
 
-`packages/client/ui-markdown/tests` 中的单元 spec 覆盖渲染器、内置规则、增量解析器、路径图片重写与手工构造的 mdast 树；两个静态块在 `packages/client/ui-primitives/tests` 保留各自的 spec。`plugin.client.spec.tsx` 在 `SlotTestRuntime` 上启动插件真实的 `apply`，断言 seat 与两条规则占满四个已声明的配对，渲染一份文档让图表与数学 fence 经由 chain seat 抵达规则，并 dispose fiber 观察全部贡献退出。`markdown-dom-parity.client.spec.tsx` 用 `tests/fixtures/markdown-dom` 逐字节固定渲染出的 DOM，因此标记不会漂移。
+`packages/client/ui-markdown/tests` 中的单元 spec 覆盖渲染器、增量解析器、路径图片重写与手工构造的 mdast 树，而 `packages/client/ui-markdown-rules/tests` 覆盖两条规则及其注册；两个静态块在 `packages/client/ui-primitives/tests` 保留各自的 spec。`plugin.client.spec.tsx` 在 `SlotTestRuntime` 上启动渲染器插件真实的 `apply`，断言 seat 占满四个已声明的配对，渲染一份文档让图表与数学 fence 经由 chain seat 抵达规则，并 dispose fiber 观察全部贡献退出；规则包的 `plugin.client.spec.tsx` 断言两条规则占满四个 fence seat，且每个 selector 只认领自己的请求。`markdown-dom-parity.client.spec.tsx` 用 `tests/fixtures/markdown-dom` 逐字节固定渲染出的 DOM，因此标记不会漂移。
 
-面向产品的客户端插件要求一个非单元的真实组合测试（[包规则](../../../../packages/AGENTS.md)）。文档预览的 markdown 注册 spec 通过 `SlotTestRuntime` 启动插件的真实 `apply` 与该界面的真实 `apply`，断言 seat 通过声明的配对完成渲染，并释放该界面以观察 seat 随声明一起离开。在图层面，`apps/web/tests/built-boot.expected.e2e.ts` 的 assembled-boot 冒烟测试挂载随包发布的 bundle 名单，其中包含 `ui-markdown` 条目。
+面向产品的客户端插件要求一个非单元的真实组合测试（[包规则](../../../../packages/AGENTS.md)）。文档预览的 markdown 注册 spec 通过 `SlotTestRuntime` 启动插件的真实 `apply` 与该界面的真实 `apply`，断言 seat 通过声明的配对完成渲染，并释放该界面以观察 seat 随声明一起离开。在图层面，`apps/web/tests/built-boot.expected.e2e.ts` 的 assembled-boot 冒烟测试挂载随包发布的 bundle 名单，其中包含 `ui-markdown` 与 `ui-markdown-rules` 条目。
 
-规则是可选的，省略插件即可证明：assembled-boot 测试基架的 `mountAssembledApp` 接受一个包 id 的 `exclude` 列表，因此挂载同一组合但不含 `@deepseek-ai/dsh-client-ui-markdown` 时，每个界面的 markdown seat 都无人填充，也没有注册任何规则。在渲染器层面，selector 拒绝的 fence（例如 `ts` fence）保留代码分支，而无规则认领的数学节点保留作者书写的源码。
+规则是可选的，省略它所在的插件即可证明：assembled-boot 测试基架的 `mountAssembledApp` 接受一个包 id 的 `exclude` 列表，因此挂载同一组合但不含 `@deepseek-ai/dsh-client-ui-markdown-rules` 时，每个 fence seat 都无人认领，每个 fence 都留在渲染器的回退上；而不含 `@deepseek-ai/dsh-client-ui-markdown` 时，每个界面的 markdown seat 都无人填充。在渲染器层面，selector 拒绝的 fence（例如 `ts` fence）保留代码分支，而无规则认领的数学节点保留作者书写的源码。
