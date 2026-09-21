@@ -90,3 +90,5 @@ The page writes configuration and never request content: the tool definitions a 
 - Whether the page should show a deployment-composed entry as read-only, rather than omitting it, is open; the Host would need to mark each entry's origin.
 
 </details>
+
+**Runtime invariant:** No companion is published. The page holds no configuration: it renders the roster the `mcpServers` Remote namespace answers with and sends every edit back through it, so persistence, revision conflicts, and enabled state belong to the Host-side provider those checks cover.
