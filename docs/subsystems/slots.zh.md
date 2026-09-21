@@ -140,7 +140,11 @@ root
 │     │     │  └─ tool.call.toolview
 │     │     │     ├─ tool.call.images
 │     │     │     └─ tool.view.cordis
+│     │     ├─ conversation.chat.markdown
+│     │     ├─ conversation.chat.markdown.fence
 │     │     ├─ conversation.message.images
+│     │     ├─ conversation.trajectory.markdown
+│     │     ├─ conversation.trajectory.markdown.fence
 │     │     └─ conversation.trajectory.images
 │     ├─ conversation.session.header
 │     │  ├─ conversation.session.header.lineage
@@ -148,7 +152,9 @@ root
 │     │  ├─ conversation.session.header.utilities
 │     │  └─ conversation.session.header.corner
 │     ├─ conversation.composer
-│     │  └─ conversation.approval.detail
+│     │  ├─ conversation.approval.detail
+│     │  ├─ conversation.composer.markdown
+│     │  └─ conversation.composer.markdown.fence
 │     ├─ conversation.composer.bar
 │     │  ├─ conversation.input.attachments
 │     │  ├─ conversation.input.plan
@@ -165,7 +171,10 @@ root
 ├─ rightbar
 │  └─ rightbar.session
 │     ├─ sidebar.right.pane.tab
-│     │  └─ sidebar.right.tab.guide
+│     │  ├─ sidebar.right.tab.guide
+│     │  └─ sidebar.right.tab.document
+│     │     ├─ sidebar.right.tab.document.markdown
+│     │     └─ sidebar.right.tab.document.markdown.fence
 │     ├─ sidebar.right.pane.tab.title
 │     └─ sidebar.right.tab.menu.item
 └─ shell.overlay

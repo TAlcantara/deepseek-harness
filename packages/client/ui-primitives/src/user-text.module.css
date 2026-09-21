@@ -41,3 +41,28 @@
      a font-relative amount, so it holds across the font axis. */
   vertical-align: -0.125em;
 }
+
+/* Inline file mention. The projected chip and the markdown renderer's own file
+   mention (in `dsh-client-ui-markdown`) share one visual language — link-blue
+   at rest, dotted underline only on hover/focus, because an underline at rest
+   collides with monospace descenders inside the code chip. The renderer lives
+   in another package and a plugin cannot import another package's stylesheet,
+   so the rule is repeated here and must stay byte-compatible. */
+.fileMention {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 500;
+  color: var(--dsw-alias-link);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.fileMention:hover,
+.fileMention:focus {
+  outline: none;
+  text-decoration: underline dotted var(--dsw-alias-link);
+  text-underline-offset: 3px;
+}

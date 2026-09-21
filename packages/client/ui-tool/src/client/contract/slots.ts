@@ -5,6 +5,7 @@ import type {
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
 import type { OpenFileOptions, ToolCallBlock } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { MessageImageLoader, MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -76,6 +77,13 @@ export interface ToolCallOwnerProps {
    * authorization.
    */
   loadImage: MessageImageLoader
+  /**
+   * Render one markdown document through the Tool-owned seat declared by the
+   * entry that registers the `tool-call` Chat Node renderer. The Tool layer
+   * never renders markdown itself: a view whose result carries authored
+   * markdown (the web-search answer) hands it to this seat.
+   */
+  renderMarkdown: MarkdownSeatRenderer
   /** Inspect this call in the trajectory view when available. */
   inspect?: (() => void) | undefined
 }

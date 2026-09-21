@@ -9,15 +9,15 @@ import {
   IconSparkle16,
   IconUserOutline16,
   JsonTree,
-  MarkdownText,
   Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { JsonTreeLabels, MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { JsonTreeLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import { structuredPatch } from 'diff'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {
   AssistantRequestConfig, ConversationPromptSnapshot, RenderMessageImages,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type {
   AssistantMetricDetail, TrajectoryCellKind, TrajectoryCellProps, TrajectorySourceBlock,
 } from './trajectory-record.ts'
@@ -238,14 +238,6 @@ function jsonTreeLabels(t: TrajectoryTranslate): JsonTreeLabels {
   }
 }
 
-function markdownLabels(t: TrajectoryTranslate): MarkdownLabels {
-  return {
-    code: { copyLabel: t('copy'), copiedLabel: t('copied') },
-    footnotes: t('markdown.footnotes'),
-    diagram: t('markdown.diagram'),
-  }
-}
-
 type TrajectorySplitStyle = CSSProperties & {
   '--trajectory-tool-request-width': string
 }
@@ -381,6 +373,8 @@ export interface TrajectoryTableProps {
   t: TrajectoryTranslate
   /** Slot-backed durable image renderer shared with the Chat gallery. */
   renderImages: RenderMessageImages
+  /** Render one inspected markdown document through this view's markdown seat. */
+  renderMarkdown: MarkdownSeatRenderer
   /** Session-global request numbers for the request groups visible in this context. */
   requestNumbers?: readonly TrajectoryRequestNumber[]
   /** Grouped records in display order. */
@@ -1103,18 +1097,17 @@ function MarkdownFragment({
   text,
   rendered,
   preview,
-  t,
+  renderMarkdown,
 }: {
   text: string
   rendered: boolean
   preview: boolean
-  t: TrajectoryTranslate
+  renderMarkdown: MarkdownSeatRenderer
 }) {
-  const labels = useMemo(() => markdownLabels(t), [t])
   if (rendered) {
     return (
       <div className={preview ? css.markdownPreview : css.markdownPayload}>
-        <MarkdownText text={text} labels={labels} />
+        {renderMarkdown({ text, streaming: false })}
       </div>
     )
   }
@@ -1437,6 +1430,7 @@ function MarkdownRecordContent({
   onThinkingExpandedChange,
   onOpenCall,
   renderImages,
+  renderMarkdown,
   t,
 }: {
   record: TableRecord
@@ -1446,6 +1440,7 @@ function MarkdownRecordContent({
   onThinkingExpandedChange: (expanded: boolean) => void
   onOpenCall: (callId: string) => void
   renderImages: RenderMessageImages
+  renderMarkdown: MarkdownSeatRenderer
   t: TrajectoryTranslate
 }) {
   if (!rendered && record.cell.sourceBlocks && record.cell.sourceBlocks.length > 0) {
@@ -1464,7 +1459,7 @@ function MarkdownRecordContent({
         record.cell.thinkingDetail,
         record.cell.outputDetail,
       ].filter((value): value is string => value !== undefined && value !== '').join('\n\n')
-      return <MarkdownFragment text={source} rendered={false} preview={preview} t={t} />
+      return <MarkdownFragment text={source} rendered={false} preview={preview} renderMarkdown={renderMarkdown} />
     }
     return (
       <div className={`${css.assistantContent} ${css.assistantContentRendered}`}>
@@ -1488,7 +1483,7 @@ function MarkdownRecordContent({
               text={record.cell.thinkingDetail}
               rendered={rendered}
               preview={preview}
-              t={t}
+              renderMarkdown={renderMarkdown}
             />
           )}
         </div>
@@ -1498,7 +1493,7 @@ function MarkdownRecordContent({
               text={record.cell.outputDetail}
               rendered={rendered}
               preview={preview}
-              t={t}
+              renderMarkdown={renderMarkdown}
             />
           </div>
         )}
@@ -1527,11 +1522,20 @@ function MarkdownRecordContent({
     return <p className={css.noPayload}>{emptyLabel}</p>
   }
   if (!rendered || (!hasImages && !hasToolCalls)) {
-    return <MarkdownFragment text={source ?? ''} rendered={rendered} preview={preview} t={t} />
+    return (
+      <MarkdownFragment
+        text={source ?? ''}
+        rendered={rendered}
+        preview={preview}
+        renderMarkdown={renderMarkdown}
+      />
+    )
   }
   return (
     <div>
-      {source && <MarkdownFragment text={source} rendered preview={preview} t={t} />}
+      {source && (
+        <MarkdownFragment text={source} rendered preview={preview} renderMarkdown={renderMarkdown} />
+      )}
       {record.cell.kind === 'message' && (
         <AssistantToolCalls
           blocks={record.cell.sourceBlocks}
@@ -1600,12 +1604,14 @@ function RecordPayload({
   direction,
   preview = false,
   renderImages,
+  renderMarkdown,
   t,
 }: {
   record: TableRecord
   direction: 'input' | 'output'
   preview?: boolean
   renderImages: RenderMessageImages
+  renderMarkdown: MarkdownSeatRenderer
   t: TrajectoryTranslate
 }) {
   const value = direction === 'input' ? record.cell.inputDetail : record.cell.outputDetail
@@ -1661,7 +1667,7 @@ function RecordPayload({
         error ? css.errorPayload : undefined,
       ].filter((className): className is string => className !== undefined).join(' ')}
       >
-        <MarkdownText text={value} labels={markdownLabels(t)} />
+        {renderMarkdown({ text: value, streaming: false })}
       </div>
     )
   }
@@ -1804,6 +1810,7 @@ function OverviewSection({
 export function TrajectoryTable({
   t,
   renderImages,
+  renderMarkdown,
   requestNumbers: sessionRequestNumbers,
   turns,
   streamingCells = [],
@@ -2966,7 +2973,7 @@ export function TrajectoryTable({
                 ? <p className={css.noPayload}>{t('record.systemPromptMissing')}</p>
                 : (
                   <div className={`${css.markdownPayload} ${css.systemPrompt}`}>
-                    <MarkdownText text={selectedSystemPrompt} labels={markdownLabels(t)} />
+                    {renderMarkdown({ text: selectedSystemPrompt, streaming: false })}
                   </div>
                 )
             )}
@@ -3005,6 +3012,7 @@ export function TrajectoryTable({
                     <MarkdownRecordContent
                       record={selected}
                       renderImages={renderImages}
+                      renderMarkdown={renderMarkdown}
                       rendered
                       thinkingExpanded={thinkingExpanded}
                       onThinkingExpandedChange={setThinkingExpanded}
@@ -3119,6 +3127,7 @@ export function TrajectoryTable({
                           <MarkdownRecordContent
                             record={selected}
                             renderImages={renderImages}
+                            renderMarkdown={renderMarkdown}
                             rendered
                             preview
                             thinkingExpanded={thinkingExpanded}
@@ -3133,12 +3142,12 @@ export function TrajectoryTable({
                       <>
                         {selected.cell.inputDetail && (
                           <OverviewSection label={t('tab.payload')} onOpen={() => { activateTab('input') }}>
-                            <RecordPayload record={selected} direction="input" preview renderImages={renderImages} t={t} />
+                            <RecordPayload record={selected} direction="input" preview renderImages={renderImages} renderMarkdown={renderMarkdown} t={t} />
                           </OverviewSection>
                         )}
                         {selected.cell.outputDetail && (
                           <OverviewSection label={t('tab.result')} onOpen={() => { activateTab('output') }}>
-                            <RecordPayload record={selected} direction="output" preview renderImages={renderImages} t={t} />
+                            <RecordPayload record={selected} direction="output" preview renderImages={renderImages} renderMarkdown={renderMarkdown} t={t} />
                           </OverviewSection>
                         )}
                         <OverviewSection label={t('tab.schema')} onOpen={() => { activateTab('schema') }}>
@@ -3168,6 +3177,7 @@ export function TrajectoryTable({
               <MarkdownRecordContent
                 record={selected}
                 renderImages={renderImages}
+                renderMarkdown={renderMarkdown}
                 rendered
                 thinkingExpanded={thinkingExpanded}
                 onThinkingExpandedChange={setThinkingExpanded}
@@ -3179,6 +3189,7 @@ export function TrajectoryTable({
               <MarkdownRecordContent
                 record={selected}
                 renderImages={renderImages}
+                renderMarkdown={renderMarkdown}
                 rendered={false}
                 thinkingExpanded={thinkingExpanded}
                 onThinkingExpandedChange={setThinkingExpanded}
@@ -3190,10 +3201,10 @@ export function TrajectoryTable({
               <MessageSource record={selected} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'input' && (
-              <RecordPayload record={selected} direction="input" renderImages={renderImages} t={t} />
+              <RecordPayload record={selected} direction="input" renderImages={renderImages} renderMarkdown={renderMarkdown} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'output' && (
-              <RecordPayload record={selected} direction="output" renderImages={renderImages} t={t} />
+              <RecordPayload record={selected} direction="output" renderImages={renderImages} renderMarkdown={renderMarkdown} t={t} />
             )}
             {!promptSelected && selected !== undefined && activeTab === 'schema' && (
               <RecordSchema record={selected} t={t} />

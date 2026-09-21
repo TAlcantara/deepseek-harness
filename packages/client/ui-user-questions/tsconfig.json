@@ -36,6 +36,9 @@
       "path": "../ui-conversation"
     },
     {
+      "path": "../ui-markdown"
+    },
+    {
       "path": "../ui-primitives"
     },
     {

@@ -36,11 +36,26 @@ function sources(count: number): WebSourceView[] {
 }
 
 describe('WebBlock search card', () => {
-  it('renders the answer above the citation list', () => {
-    const view = render(<WebBlock kind="search" answer="**Answer** text" sources={sources(2)} truncated={false} />)
-    expect(view.getByText('Answer')).toBeTruthy()
+  it('renders the answer through the owner-supplied renderer above the citation list', () => {
+    const view = render(
+      <WebBlock
+        kind="search"
+        answer="**Answer** text"
+        renderAnswer={answer => <span>{answer.replaceAll('**', '')}</span>}
+        sources={sources(2)}
+        truncated={false}
+      />,
+    )
+    expect(view.getByText('Answer text')).toBeTruthy()
     expect(view.getByText('Source 0')).toBeTruthy()
     expect(view.getByText('Source 1')).toBeTruthy()
+  })
+
+  it('keeps the authored answer text when the owner supplies no renderer', () => {
+    const view = render(
+      <WebBlock kind="search" answer="**Answer** text" sources={sources(2)} truncated={false} />,
+    )
+    expect(view.getByText('**Answer** text')).toBeTruthy()
   })
 
   it('omits the answer block when there is no answer', () => {

@@ -10,7 +10,7 @@ import type {
   SlotHookFactory, SnapshotSelectorHook,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownFileMentions, MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { createChatStore } from '../stores.ts'
 import type { ToolCallId } from './store.ts'
@@ -93,6 +93,12 @@ export interface ChatNodeOwnerProps {
   loadImage: MessageImageLoader
   renderMessageImages: RenderMessageImages
   fileMentions: (owner: TurnTailOwnerProps) => MarkdownFileMentions | undefined
+  /**
+   * Render one markdown document through the Chat markdown seat. The Chat view
+   * owns this closure, so every Chat node renderer draws prose through the one
+   * seat this Conversation target declares.
+   */
+  renderMarkdown: MarkdownSeatRenderer
   /** Turn-process state when this Node belongs to a projected Turn. */
   turnProcess?: TurnProcessOwnerProps | undefined
 }
@@ -113,6 +119,8 @@ export type ChatNodeViewProps<Kind extends ChatNodeKind = ChatNodeKind> =
 export interface CommandRowOwnerProps {
   node: CommandNode
   compaction?: CompactionSummaryNode
+  /** Render a disclosed summary through the Chat markdown seat. */
+  renderMarkdown: MarkdownSeatRenderer
 }
 
 /** Full props of a registered command row. */
@@ -158,7 +166,8 @@ export interface ChatViewInjected {
 /** Full Chat view props. */
 export type ChatViewSlotProps =
   PropsRuntime<'conversation.view'>
-  & PropsRenderSlots<'conversation.chat.node' | 'conversation.message.images'>
+  & PropsRenderSlots<'conversation.chat.node' | 'conversation.message.images'
+    | 'conversation.chat.markdown' | 'conversation.chat.markdown.fence'>
   & PropsStore<ChatStore>
   & InjectFace<ChatViewInjected>
   & PropsLocale<'chat'>

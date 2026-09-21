@@ -36,6 +36,9 @@
       "path": "../ui-renderer"
     },
     {
+      "path": "../ui-markdown"
+    },
+    {
       "path": "../ui-primitives"
     },
     {

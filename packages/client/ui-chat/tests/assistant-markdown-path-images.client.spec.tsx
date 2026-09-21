@@ -2,6 +2,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { AssistantMarkdown, localPathMediaUrl } from '../src/client/chat/AssistantMarkdown.tsx'
+import { renderMarkdown } from './seat.client.tsx'
 import type { ChatNodeOwnerProps, ChatViewSlotProps } from '../src/client/contract/slots.ts'
 import type { AssistantBlock } from '../src/client/contract/snapshot.ts'
 
@@ -46,6 +47,7 @@ describe('AssistantMarkdown local-path images', () => {
   it('renders a local image path in closing prose through the same-origin API', () => {
     const { container } = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         blocks={[textBlock('See ![diagram](/tmp/graph.png) for the layout.')]}
         streaming={false}
         renderMessageImages={renderMessageImages}
@@ -62,6 +64,7 @@ describe('AssistantMarkdown local-path images', () => {
   it('keeps non-absolute destinations inert', () => {
     const { container } = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         blocks={[textBlock('See ![diagram](relative.png).')]}
         streaming={false}
         renderMessageImages={renderMessageImages}

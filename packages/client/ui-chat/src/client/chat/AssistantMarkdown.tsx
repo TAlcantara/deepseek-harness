@@ -1,10 +1,10 @@
 import { Fragment, memo, useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { JsonBlock, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { MarkdownFileMentions, MarkdownPathImages } from '@deepseek-ai/dsh-client-ui-primitives'
+import { JsonBlock } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownFileMentions, MarkdownPathImages } from '@deepseek-ai/dsh-client-ui-markdown/client'
+import type { MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { ChatNodeOwnerProps, ChatViewSlotProps } from '../contract/slots.ts'
 import type { AssistantBlock } from '../contract/snapshot.ts'
-import { markdownLabels } from '../markdown-labels.ts'
 import { ReasoningRow } from './ReasoningRow.tsx'
 import { useSearchableHidden } from './searchable-hidden.ts'
 import css from './AssistantMarkdown.module.css'
@@ -32,6 +32,8 @@ export interface AssistantMarkdownProps {
   interrupted?: boolean | undefined
   /** Render consecutive image blocks through the attachment slot. */
   renderMessageImages: ChatNodeOwnerProps['renderMessageImages']
+  /** Render one prose block through this surface's markdown seat. */
+  renderMarkdown: MarkdownSeatRenderer
   /** Hide reasoning that belongs to the Turn-level process disclosure. */
   reasoningHidden?: boolean | undefined
   /** Reveal the owning Turn-level process disclosure. */
@@ -44,12 +46,9 @@ export interface AssistantMarkdownProps {
 
 /** Reasoning block as the Think variant summary row (figma 39:28304). */
 export const AssistantMarkdown = memo(function AssistantMarkdown({
-  blocks, streaming, interrupted, renderMessageImages,
+  blocks, streaming, interrupted, renderMessageImages, renderMarkdown,
   reasoningHidden = false, revealProcess, mentions, t,
 }: AssistantMarkdownProps) {
-  // Stable per locale revision (t identity changes on switch): a fresh object
-  // per render would rebuild MarkdownText's component table every chunk.
-  const labels = useMemo(() => markdownLabels(t), [t])
   // Local media paths in the closing prose rewrite to the same-origin file
   // API (policy re-validation lives host-side). The vocabulary identity is
   // stable per page load because MarkdownText memoizes on it.
@@ -72,14 +71,9 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
     switch (block.kind) {
       case 'text':
         rendered.push(
-          <MarkdownText
-            key={i}
-            text={block.text}
-            streaming={streaming}
-            labels={labels}
-            fileMentions={mentions}
-            pathImages={pathImages}
-          />,
+          <Fragment key={i}>
+            {renderMarkdown({ text: block.text, streaming, mentions, pathImages })}
+          </Fragment>,
         )
         break
       case 'reasoning':

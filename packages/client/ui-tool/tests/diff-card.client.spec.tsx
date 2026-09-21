@@ -159,6 +159,7 @@ describe('diffCardModel', () => {
 
 describe('chat row diff body', () => {
   const ownerProps = (block: RunningToolCall | ToolResultNode): GenericToolCardProps => ({
+    renderMarkdown: () => null,
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
     callId: 'c1', toolName: 'edit', block, openFile: vi.fn(), t,
   })
@@ -184,6 +185,7 @@ describe('chat row diff body', () => {
     // A non-file tool name so the row is not single-file (no path link), and its
     // args body is the fallback the diff card must not have replaced.
     const view = render(<GenericToolCard {...{
+      renderMarkdown: () => null,
       callId: 'c1', toolName: 'some_tool', openFile: vi.fn(),
       loadImage: vi.fn(() => Promise.reject(new Error('not used'))), t,
       block: settled({

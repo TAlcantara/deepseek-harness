@@ -3,7 +3,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act } from '@testing-library/react'
 import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
-import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { COMMON_NS, LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
+import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { apply as applyMarkdown, inject as injectMarkdown } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { UseSidebarRightTabInfo } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { DocumentPreviewRegistry } from '../src/client/document/registry.ts'
 import { documentTabInfoFactory } from '../src/client/document/contract.ts'
@@ -33,7 +36,7 @@ describe('Markdown implementation registration', () => {
     expect(registry.getSnapshot()).toEqual([])
   })
 
-  it('waits for the document slot, renders with its locale, and releases every contribution on unload', async () => {
+  it('waits for the document slot, renders through the seat it declares, and releases every contribution on unload', async () => {
     const runtime = await SlotTestRuntime.create()
     runtimes.push(runtime)
     const previews = new DocumentPreviewRegistry()
@@ -41,8 +44,12 @@ describe('Markdown implementation registration', () => {
     const locale = new LocaleRuntime(runtime.ctx)
     runtime.ctx.provide('locale', locale)
     runtime.slots.installLocale(locale)
+    // The renderer's chrome copy is shared vocabulary; a real composition
+    // registers it with the locale plugin.
+    locale.register(COMMON_NS, { zh: commonZh, en: commonEn })
     locale.setLocale('en')
     await runtime.sessions.add({ id: 'markdown-registration' })
+    await runtime.mount({ inject: [...injectMarkdown], apply: applyMarkdown })
     const feature = await runtime.mount({ inject: ['slots', 'locale', 'documentPreviews'], apply })
     expect(previews.getSnapshot().map(definition => definition.id)).toEqual([MARKDOWN_BODY_ID])
     const useTabInfo = vi.fn<UseSidebarRightTabInfo>(() => { throw new Error('Markdown rendering does not need tab actions') })
@@ -60,6 +67,7 @@ describe('Markdown implementation registration', () => {
     expect(view.getByRole('heading', { name: 'Notes' })).toBeDefined()
     expect(view.getByRole('button', { name: 'Copy' })).toBeDefined()
     expect(runtime.slots.entries('sidebar.right.tab.document')).toHaveLength(1)
+    expect(runtime.slots.entries('sidebar.right.tab.document.markdown')).toHaveLength(1)
     const t = locale.bind('documentMarkdown')
     await act(async () => { locale.setLocale('zh') })
     expect(locale.bind('documentMarkdown')).toBe(t)
@@ -69,8 +77,10 @@ describe('Markdown implementation registration', () => {
     await feature.dispose()
     expect(previews.getSnapshot()).toEqual([])
     expect(runtime.slots.entries('sidebar.right.tab.document')).toEqual([])
+    // The declaration collapsed with the entry, so the seat it authorized is gone too.
+    expect(runtime.slots.entries('sidebar.right.tab.document.markdown')).toEqual([])
     expect(view.container.querySelector('[data-missing-markdown]')).not.toBeNull()
-    expect(t('code.copy')).toBe('code.copy')
+    expect(t('viewer.label')).toBe('viewer.label')
     await runtime.mount({ inject: ['slots', 'locale', 'documentPreviews'], apply })
     expect(previews.getSnapshot()).toHaveLength(1)
     expect(view.getByRole('button', { name: '复制' })).toBeDefined()

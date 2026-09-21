@@ -18,7 +18,6 @@ import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import { ReferenceIcon } from './ReferenceIcon.tsx'
 import css from './user-text.module.css'
-import markdownCss from './markdown/MarkdownText.module.css'
 
 /** The wire form a session chip serializes to; label is the display text. */
 const SESSION_WIRE_RE = /@\[([^\]\n]+)\]\(dsh-session:[^)\s]+\)/gu
@@ -138,7 +137,7 @@ export function projectUserText(
       : <button
         key={tokenStart}
         type="button"
-        className={clsx(className, markdownCss.fileMention)}
+        className={clsx(className, css.fileMention)}
         data-ref-chip={referenceKind ?? slashKind}
         title={label}
         onClick={(event) => {

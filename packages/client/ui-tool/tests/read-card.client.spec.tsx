@@ -164,6 +164,7 @@ describe('readCallLine', () => {
 
 describe('GenericToolCard read body', () => {
   const ownerProps = (block: RunningToolCall | ToolResultNode): GenericToolCardProps => ({
+    renderMarkdown: () => null,
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
     callId: 'c1', toolName: 'read', block, openFile: vi.fn(), t,
   })
@@ -187,6 +188,7 @@ describe('GenericToolCard read body', () => {
 
   it('a non-read tool renders the bare row with no read card', () => {
     const view = render(<GenericToolCard {...({
+      renderMarkdown: () => null,
       callId: 'c1', toolName: 'echo', block: settled({
         call: { name: 'echo', argsRaw: '{"text":"x"}' }, meta: undefined,
       }), openFile: vi.fn(), loadImage: vi.fn(() => Promise.reject(new Error('not used'))), t,

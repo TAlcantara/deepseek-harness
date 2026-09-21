@@ -104,6 +104,12 @@ export function apply(ctx: Context): void {
       children: {
         'conversation.chat.node': { kind: 'keyed', scope: 'session', inject: CHAT_NODE_INJECT },
         'conversation.message.images': { kind: 'single', scope: 'session' },
+        // Chat owns one markdown seat for every prose surface it renders: the
+        // assistant transcript, a disclosed compaction summary, a command card's
+        // summary, and the tool cards' web answer. The closure travels as owner
+        // currency, so the seat stays authorized to this one render location.
+        'conversation.chat.markdown': { kind: 'single', scope: 'session' },
+        'conversation.chat.markdown.fence': { kind: 'chain', scope: 'session' },
       },
       store: chatStore,
       inject: (sessionId: SessionId): ChatViewInjected => {

@@ -20,6 +20,7 @@ import type {
 import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { SessionPendingInteractionSnapshot } from '@deepseek-ai/dsh-client-ui-session/client'
+import { renderMarkdown } from './seat.client.tsx'
 import type { KeyedSnapshotSelectorHook, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 import { bindSnapshotSelector, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
@@ -293,7 +294,14 @@ function makeHarness(
       ConversationLocationDataStore<ConversationTurnDataMap> | undefined
     const useTurnData: UseChatNodeTurnData = dataKey => useTurnDataValue(turnData, dataKey)
     const nodeProps = <Kind extends ChatNode['kind']>(): ChatNodeViewProps<Kind> => (
-      { ...props, ...nodeOwner, useTurnData } as unknown as ChatNodeViewProps<Kind>
+      {
+        ...props,
+        ...nodeOwner,
+        useTurnData,
+        // These specs render node renderers directly, so the framework never
+        // binds the Chat markdown seat: prose takes the real renderer.
+        renderMarkdown,
+      } as unknown as ChatNodeViewProps<Kind>
     )
     switch (nodeOwner.node.kind) {
       case 'user':
@@ -393,6 +401,7 @@ function makeHarness(
     actions: chat.actions,
     useTranscriptView: bindSnapshotSelector(transcriptView),
     renderSlot,
+    renderSlotChain: ((_key: string, _owner: object, opts?: { fallback?: unknown }) => opts?.fallback ?? null) as unknown as ChatViewSlotProps['renderSlotChain'],
     SessionProvider: SessionProviderStub,
     viewRequest: null,
     openView,

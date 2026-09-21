@@ -175,6 +175,7 @@ describe('searchCardModel', () => {
 
 describe('chat row search body (GenericToolCard fallback)', () => {
   const ownerProps = (block: RunningToolCall | ToolResultNode, toolName: string): GenericToolCardProps => ({
+    renderMarkdown: () => null,
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
     callId: 'c1', toolName, block, openFile: vi.fn(), t,
   })

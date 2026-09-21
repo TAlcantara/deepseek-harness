@@ -1,0 +1,11 @@
+<div class="_markdown_2acb72">
+  <div class="_tableScroll_2acb72 _tableFill_2acb72">
+    <table>
+      <thead>
+        <tr>
+          <th>
+            #text "a"
+          <th>
+            #text "b"
+  <p>
+    #text "after"

@@ -10,17 +10,25 @@ interface CompactionCommandCardProps extends CommandRowOwnerProps {
 }
 
 /** Render one manual compaction lifecycle without duplicating its checkpoint marker. */
-export function CompactionCommandCard({ node, compaction, t }: CompactionCommandCardProps) {
+export function CompactionCommandCard({ node, compaction, renderMarkdown, t }: CompactionCommandCardProps) {
   if (compaction !== undefined) {
     return (
       <CompactionItem
         node={compaction}
         title={t('message.compaction.commandTitle')}
         fallbackSummary={node.outcome?.text ?? null}
+        renderMarkdown={renderMarkdown}
         t={t}
       />
     )
   }
-  if (node.outcome !== null) return <GenericCommandCard node={node} t={t} />
-  return <GenericCommandCard node={node} t={t} runningSummary={t('message.compaction.running')} />
+  if (node.outcome !== null) return <GenericCommandCard node={node} renderMarkdown={renderMarkdown} t={t} />
+  return (
+    <GenericCommandCard
+      node={node}
+      renderMarkdown={renderMarkdown}
+      t={t}
+      runningSummary={t('message.compaction.running')}
+    />
+  )
 }

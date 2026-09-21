@@ -6,7 +6,7 @@
 import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
 import type { TurnTailOwnerProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ConversationNodeDefinition } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { PresentedFile } from '@deepseek-ai/dsh-tool-present/types'
 import { basename, isPresentedData, isPresentedFile } from '../presented.ts'
 

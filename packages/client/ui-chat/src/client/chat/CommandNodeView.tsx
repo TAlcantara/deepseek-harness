@@ -10,9 +10,11 @@ import css from './ChatView.module.css'
 type CommandNodeViewProps = ChatNodeViewProps<'command'> & PropsRenderSlots<'conversation.chat.commandview'>
 
 /** Ordinary command lifecycle renderer with command-name keyed specialization. */
-export const CommandNodeView = memo(function CommandNodeView({ node, renderSlot, t }: CommandNodeViewProps) {
+export const CommandNodeView = memo(function CommandNodeView({
+  node, renderSlot, renderMarkdown, t,
+}: CommandNodeViewProps) {
   const command = node.data
-  const owner = useMemo<CommandRowOwnerProps>(() => ({ node: command }), [command])
+  const owner = useMemo<CommandRowOwnerProps>(() => ({ node: command, renderMarkdown }), [command, renderMarkdown])
   return (
     <div className={css.callRow}>
       {renderSlot('conversation.chat.commandview', owner, {
@@ -25,7 +27,7 @@ export const CommandNodeView = memo(function CommandNodeView({ node, renderSlot,
 
 /** One integrated `/compact` command and compaction transaction renderer. */
 export const ManualCompactionNodeView = memo(function ManualCompactionNodeView({
-  node, t,
+  node, renderMarkdown, t,
 }: ChatNodeViewProps<'manual-compaction'>) {
   const data = node.data
   return (
@@ -33,6 +35,7 @@ export const ManualCompactionNodeView = memo(function ManualCompactionNodeView({
       <CompactionCommandCard
         node={data.command}
         {...data.compaction === null ? {} : { compaction: data.compaction }}
+        renderMarkdown={renderMarkdown}
         t={t}
       />
     </div>

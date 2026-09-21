@@ -1,6 +1,7 @@
 /** Root/subcall Tool composition with one keyed atomic dispatch path. */
 import { memo, useMemo, type ReactNode } from 'react'
 import type { ToolCallBlock } from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { ToolCallOwnerProps, ToolTreeProps } from '../contract/slots.ts'
 import { GenericToolCard } from './toolviews/GenericToolCard.tsx'
 import css from './ToolCallTree.module.css'
@@ -12,12 +13,14 @@ function callName(node: ToolCallBlock): string {
 
 /** One atomic call dispatched through the Tool-owned keyed slot. */
 const ToolCall = memo(function ToolCall({
-  renderSlot, callId, toolName, block, openFile, cwd, home, inspectCall, loadImage, t, children,
+  renderSlot, callId, toolName, block, openFile, cwd, home, inspectCall, loadImage,
+  renderMarkdown, t, children,
 }: Pick<ToolTreeProps, 'renderSlot' | 'openFile' | 'cwd' | 'inspectCall' | 'loadImage' | 't'> & {
   callId: string
   toolName: string
   block: ToolCallBlock
   home?: string | undefined
+  renderMarkdown: MarkdownSeatRenderer
   children?: ReactNode
 }) {
   const owner: ToolCallOwnerProps = useMemo(() => ({
@@ -28,8 +31,9 @@ const ToolCall = memo(function ToolCall({
     cwd,
     home,
     loadImage,
+    renderMarkdown,
     inspect: () => { inspectCall(callId) },
-  }), [callId, toolName, block, openFile, cwd, home, loadImage, inspectCall])
+  }), [callId, toolName, block, openFile, cwd, home, loadImage, renderMarkdown, inspectCall])
   return (
     <div
       className={css.callRow}
@@ -46,10 +50,11 @@ const ToolCall = memo(function ToolCall({
 })
 
 const ToolCallBranch = memo(function ToolCallBranch({
-  renderSlot, block, cwd, home, openFile, inspectCall, loadImage, t,
+  renderSlot, block, cwd, home, openFile, inspectCall, loadImage, renderMarkdown, t,
 }: Pick<ToolTreeProps, 'renderSlot' | 'cwd' | 'openFile' | 'inspectCall' | 'loadImage' | 't'> & {
   block: ToolCallBlock
   home?: string | undefined
+  renderMarkdown: MarkdownSeatRenderer
 }) {
   return (
     <ToolCall
@@ -62,6 +67,7 @@ const ToolCallBranch = memo(function ToolCallBranch({
       home={home}
       inspectCall={inspectCall}
       loadImage={loadImage}
+      renderMarkdown={renderMarkdown}
       t={t}
     >
       {block.subCalls.length > 0 ? (
@@ -76,6 +82,7 @@ const ToolCallBranch = memo(function ToolCallBranch({
               openFile={openFile}
               inspectCall={inspectCall}
               loadImage={loadImage}
+              renderMarkdown={renderMarkdown}
               t={t}
             />
           ))}
@@ -92,13 +99,14 @@ const ToolCallBranch = memo(function ToolCallBranch({
  * @returns the Tool call tree.
  */
 export function ToolCallTree({
-  renderSlot, node, cwd, openFile, inspectCall, loadImage, useHostInfo, t,
+  renderSlot, renderMarkdown, node, cwd, openFile, inspectCall, loadImage, useHostInfo, t,
 }: ToolTreeProps) {
   const home = useHostInfo(info => info.home)
   const block = node.data.root
   return (
     <ToolCallBranch
       renderSlot={renderSlot}
+      renderMarkdown={renderMarkdown}
       block={block}
       cwd={cwd}
       home={home}

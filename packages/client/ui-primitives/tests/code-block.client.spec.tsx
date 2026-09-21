@@ -5,10 +5,10 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { CodeBlock as LocalizedCodeBlock } from '../src/markdown/CodeBlock.tsx'
 import { highlightToHtml, subscribeGrammarLoaded } from '../src/markdown/highlight.ts'
-import { markdownLabels } from './labels.client.ts'
+import { codeCopyLabels } from './labels.client.ts'
 
 function CodeBlock(props: Omit<ComponentProps<typeof LocalizedCodeBlock>, 'copyLabel' | 'copiedLabel'>) {
-  return <LocalizedCodeBlock {...props} {...markdownLabels.code} />
+  return <LocalizedCodeBlock {...props} {...codeCopyLabels} />
 }
 
 afterEach(cleanup)

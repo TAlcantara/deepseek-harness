@@ -1,11 +1,17 @@
-import { useMemo, useState } from 'react'
-import { Button, IconEditOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useState } from 'react'
+import { Button, IconEditOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { PendingQuestion, PlanReview, QuestionComposerProps } from './contract/slots.ts'
 import css from './PlanReviewPanel.module.css'
 
 /** The panel's own props: the question domain face, the narrowed review, and the locale seat. */
 export type PlanReviewPanelProps =
-  { pending: PendingQuestion; review: PlanReview } & Pick<QuestionComposerProps, 't'>
+  {
+    pending: PendingQuestion
+    review: PlanReview
+    /** Render the plan body through the composer entry's markdown seat. */
+    renderMarkdown: MarkdownSeatRenderer
+  } & Pick<QuestionComposerProps, 't'>
 
 /**
  * Optional-prop spread for a decision button's tooltip: `title` is optional on
@@ -21,15 +27,11 @@ function tooltip(description: string | undefined): { title?: string } {
 /**
  * Render a plan review as a decision card.
  *
- * @param props - the question domain face, the narrowed plan review, and `t`.
+ * @param props - the question domain face, the narrowed plan review, the
+ * composer entry's markdown seat, and `t`.
  * @returns The plan-review takeover for this request.
  */
-export function PlanReviewPanel({ pending, review, t }: PlanReviewPanelProps) {
-  const markdownLabels = useMemo(() => ({
-    code: { copyLabel: t('copy'), copiedLabel: t('copied') },
-    footnotes: t('markdown.footnotes'),
-    diagram: t('markdown.diagram'),
-  }), [t])
+export function PlanReviewPanel({ pending, review, renderMarkdown, t }: PlanReviewPanelProps) {
   // The panel waits for the host's resolved frame before leaving, so repeated
   // clicks must not resubmit. A failed send re-enables it and shows the error.
   const [busy, setBusy] = useState(false)
@@ -55,7 +57,7 @@ export function PlanReviewPanel({ pending, review, t }: PlanReviewPanelProps) {
           {t('plan.header')}
         </div>
         <div className={css.body} data-plan-review-scroll>
-          <MarkdownText text={review.plan} labels={markdownLabels} />
+          {renderMarkdown({ text: review.plan, streaming: false })}
         </div>
         <div className={css.footer}>
           <div className={css.feedback} role="status">{error}</div>

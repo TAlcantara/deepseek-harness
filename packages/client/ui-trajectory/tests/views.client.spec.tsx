@@ -40,6 +40,7 @@ import {
 import { createConversationStore } from '@deepseek-ai/dsh-client-ui-conversation/src/client/stores.ts'
 import { zh as conversationZh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 import { apply as localeApply, inject as localeInject } from '@deepseek-ai/dsh-client-locale/client'
+import type { MarkdownSeatOwnerProps } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-trajectory/client'
 import { apply as nodeApply } from '@deepseek-ai/dsh-client-ui-trajectory'
 import type { TrajectoryTurnModel } from '../src/client/layout.ts'
@@ -51,6 +52,7 @@ import { createTrajectoryDurationStore } from '../src/client/duration-store.ts'
 import { EMPTY_TRAJECTORY_SNAPSHOT } from '../src/client/trajectory-snapshot-builder.ts'
 import type { TrajectorySnapshot } from '../src/client/trajectory-contract.ts'
 import { deriveTrajectoryTimeline } from '../src/client/timeline.ts'
+import { renderMarkdown } from './seat.client.tsx'
 import { t as tTrajectory, tZh } from './locale.client.ts'
 
 // Every session-scope fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
@@ -237,8 +239,13 @@ function standaloneProps(
     viewRequest: null,
     openView: () => {},
     completeViewRequest: () => {},
-    // Image seats the outlet would bake: standalone renders omit the gallery.
-    renderSlot: () => null,
+    // Child seats the outlet would bake: the markdown seat renders the real
+    // document renderer (no fixture fence is claimed), while standalone
+    // renders omit the image gallery.
+    renderSlot: ((key: string, owner: MarkdownSeatOwnerProps) => (
+      key === 'conversation.trajectory.markdown' ? renderMarkdown(owner) : null
+    )) as unknown as ComponentProps<typeof TrajectoryView>['renderSlot'],
+    renderSlotChain: ((_key: string, _owner: object, opts?: { fallback?: unknown }) => opts?.fallback ?? null) as unknown as ComponentProps<typeof TrajectoryView>['renderSlotChain'],
     SessionProvider: ({ children }) => <>{children}</>,
     loadImage: () => Promise.reject(new Error('standalone views load no images')),
     // The locale seat the outlet would inject for the declared namespace.

@@ -1,6 +1,10 @@
 /** Question composer props and one pending Remote waterfall response. */
-import type { PropsLocale, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
-// The client module declares the conversation.composer SlotMap entry required by PropsRuntime.
+import type {
+  PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
+} from '@deepseek-ai/dsh-client-ui-slots'
+// Type-only: the markdown client module declares the composer's markdown seat
+// rows, which PropsRenderSlots below reads out of the SlotMap.
+import type {} from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type {
   AskUserQuestionAnswer, AskUserQuestionItem,
@@ -214,11 +218,15 @@ export type QuestionWait = PendingQuestion
  * Full component props: the framework runtime share (chain currency +
  * session/global standard kit) plus the chain `matched` share — the entry's
  * selector result, already narrowed to the question carrier — plus the
- * standard locale seat; the carrier plus the domain face above carry the
- * whole behavior surface.
+ * markdown seat the entry declares for the question detail and the plan-review
+ * body, plus the standard locale seat; the carrier plus the domain face above
+ * carry the whole behavior surface.
  */
 export type QuestionComposerProps =
   PropsRuntime<'conversation.composer'>
+  & PropsRenderSlots<
+    'conversation.composer.markdown' | 'conversation.composer.markdown.fence'
+  >
   & PropsStore<ReturnType<typeof createQuestionDraftStore>>
   & { matched: QuestionWait }
   & PropsLocale<'question'>

@@ -8,6 +8,7 @@ import type { RenderMessageImages } from '@deepseek-ai/dsh-client-ui-conversatio
 import { TrajectoryTable as LocalizedTrajectoryTable } from '../src/client/TrajectoryTable.tsx'
 import { deriveTrajectoryLayout, type TrajectoryTurnModel } from '../src/client/layout.ts'
 import { trajectoryRecordId } from '../src/client/trajectory-record.ts'
+import { renderMarkdown } from './seat.client.tsx'
 import { t, tZh } from './locale.client.ts'
 
 const renderImagesStub: RenderMessageImages = ({ images }) => (
@@ -22,7 +23,7 @@ const renderImagesStub: RenderMessageImages = ({ images }) => (
 )
 
 function TrajectoryTable(
-  props: Omit<ComponentProps<typeof LocalizedTrajectoryTable>, 't' | 'renderImages'>
+  props: Omit<ComponentProps<typeof LocalizedTrajectoryTable>, 't' | 'renderImages' | 'renderMarkdown'>
     & { renderImages?: RenderMessageImages },
 ) {
   const inferred: Array<NonNullable<typeof props.requestNumbers>[number] & { firstIndex: number }> = []
@@ -58,6 +59,7 @@ function TrajectoryTable(
   return (
     <LocalizedTrajectoryTable
       renderImages={renderImagesStub}
+      renderMarkdown={renderMarkdown}
       {...props}
       requestNumbers={requestNumbers}
       t={t}
@@ -166,6 +168,7 @@ describe('TrajectoryTable', () => {
       <LocalizedTrajectoryTable
         t={tZh}
         renderImages={renderImagesStub}
+        renderMarkdown={renderMarkdown}
         turns={TURNS}
         collapsedTurns={new Set<number>()}
         onToggleTurn={() => {}}

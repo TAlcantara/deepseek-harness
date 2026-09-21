@@ -1,15 +1,14 @@
 // A compaction marker does not replace shadowed transcript rows. It is
 // expandable only when the current window includes its cited summary.
 
-import { memo, useMemo, useState } from 'react'
+import { memo, useState } from 'react'
 import {
   IconApiOutline14,
   IconChevronDownOutline14,
   IconChevronRightOutline14,
-  MarkdownText,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { ChatViewSlotProps } from '../contract/slots.ts'
-import { markdownLabels } from '../markdown-labels.ts'
 import type { CompactionSummaryNode } from '../contract/snapshot.ts'
 import css from './MessageItem.module.css'
 
@@ -19,6 +18,8 @@ interface CompactionItemProps {
   title?: string
   /** Command settlement text used when structured compaction counts are unavailable. */
   fallbackSummary?: string | null
+  /** Render the disclosed summary through this surface's markdown seat. */
+  renderMarkdown: MarkdownSeatRenderer
   /** The owning view's locale seat. */
   t: ChatViewSlotProps['t']
 }
@@ -32,10 +33,10 @@ export const CompactionItem = memo(function CompactionItem({
   node,
   title,
   fallbackSummary,
+  renderMarkdown,
   t,
 }: CompactionItemProps) {
   const [expanded, setExpanded] = useState(false)
-  const labels = useMemo(() => markdownLabels(t), [t])
   const expandable = node.summary !== null
   const open = expandable && expanded
   const summary = node.shadowedItemCount !== null && node.shadowedTokenCount !== null
@@ -70,7 +71,11 @@ export const CompactionItem = memo(function CompactionItem({
         <span className={css.compactionSummary}>{summary}</span>
       </button>
       {open && node.summary !== null
-        && <div className={css.compactionBody}><MarkdownText text={node.summary} labels={labels} /></div>}
+        && (
+          <div className={css.compactionBody}>
+            {renderMarkdown({ text: node.summary, streaming: false })}
+          </div>
+        )}
     </div>
   )
 })

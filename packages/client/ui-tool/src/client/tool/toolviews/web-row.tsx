@@ -1,3 +1,5 @@
+import { useCallback } from 'react'
+import type { ReactNode } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { IconBrowseOutline16, IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
@@ -15,10 +17,15 @@ const WEB_TITLE_KEYS = {
 } as const
 
 /** Lets users expand a completed web search or fetch result. */
-export function WebRow({ toolName, block, inspect, t }: WebRowProps) {
+export function WebRow({ toolName, block, inspect, renderMarkdown, t }: WebRowProps) {
   const model = toolRowModel(toolName, block)
   const web = webCardModel(block)
   const icon = toolName === 'web_fetch' ? <IconBrowseOutline16 size={14} /> : <IconGlobeOutline14 size={14} />
+  // A settled result's answer is never streaming.
+  const renderAnswer = useCallback(
+    (answer: string): ReactNode => renderMarkdown({ text: answer, streaming: false }),
+    [renderMarkdown],
+  )
   return (
     <ToolRow
       t={t}
@@ -32,6 +39,7 @@ export function WebRow({ toolName, block, inspect, t }: WebRowProps) {
       output={model.output}
       errorSummary={model.errorSummary}
       web={web}
+      renderAnswer={renderAnswer}
       state={model.state}
       inspect={inspect}
     />

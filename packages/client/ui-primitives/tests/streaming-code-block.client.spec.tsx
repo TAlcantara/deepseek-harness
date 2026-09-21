@@ -10,9 +10,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { CodeBlock } from '../src/markdown/CodeBlock.tsx'
 import { StreamingHighlightSession } from '../src/markdown/highlight.ts'
-import { markdownLabels } from './labels.client.ts'
+import { codeCopyLabels } from './labels.client.ts'
 
-const LABELS = markdownLabels.code
+const LABELS = codeCopyLabels
 
 afterEach(cleanup)
 

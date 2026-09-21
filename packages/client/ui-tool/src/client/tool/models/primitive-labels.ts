@@ -2,7 +2,6 @@
 
 import type {
   DiffBlockLabels,
-  MarkdownLabels,
   ReadBlockLabels,
   SearchBlockLabels,
   WebBlockLabels,
@@ -10,19 +9,6 @@ import type {
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 
 type T = TranslateNS<'conversation'>
-
-/**
- * Build localized Markdown chrome labels.
- * @param t - Conversation locale seat.
- * @returns Markdown chrome labels.
- */
-export function markdownLabels(t: T): MarkdownLabels {
-  return {
-    code: { copyLabel: t('copy'), copiedLabel: t('copied') },
-    footnotes: t('markdown.footnotes'),
-    diagram: t('markdown.diagram'),
-  }
-}
 
 /**
  * Build localized diff-card chrome labels.
@@ -94,6 +80,5 @@ export function webBlockLabels(t: T): WebBlockLabels {
     sourcesTruncated: t('web.sourcesTruncated'),
     http: t('web.http'),
     contentTruncated: t('web.contentTruncated'),
-    markdown: markdownLabels(t),
   }
 }

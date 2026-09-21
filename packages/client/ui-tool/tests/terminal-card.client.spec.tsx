@@ -292,6 +292,7 @@ describe('terminalCardModel', () => {
 
 describe('chat row terminal body', () => {
   const ownerProps = (block: RunningToolCall | ToolResultNode): GenericToolCardProps => ({
+    renderMarkdown: () => null,
     loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
     callId: 'c1', toolName: 'bash', block, openFile: vi.fn(), t,
   })

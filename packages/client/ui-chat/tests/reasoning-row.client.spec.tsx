@@ -5,6 +5,7 @@ import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { zh } from '../src/client/locale.ts'
 import { AssistantMarkdown, type AssistantMarkdownProps } from '../src/client/chat/AssistantMarkdown.tsx'
+import { renderMarkdown } from './seat.client.tsx'
 
 afterEach(() => {
   cleanup()
@@ -17,6 +18,7 @@ describe('ReasoningRow', () => {
   it('follows the latest streaming line, then restores the settled first line', () => {
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens' }]}
         streaming
@@ -29,6 +31,7 @@ describe('ReasoningRow', () => {
 
     view.rerender(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens keep arriving' }]}
         streaming
@@ -40,6 +43,7 @@ describe('ReasoningRow', () => {
 
     view.rerender(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nNewest reasoning tokens keep arriving\n' }]}
         streaming={false}
@@ -54,6 +58,7 @@ describe('ReasoningRow', () => {
   it('expands from either Think or the reasoning summary', () => {
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nCheck persistence' }]}
         streaming={false}
@@ -84,6 +89,7 @@ describe('ReasoningRow', () => {
   ])('strips double-asterisk markers from the $label summary without changing the reasoning body', ({ text, streaming }) => {
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'reasoning', text }]}
         streaming={streaming}
@@ -101,6 +107,7 @@ describe('ReasoningRow', () => {
   it('expanded Think drops the inline summary and renders plain prose, no IN card', () => {
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'reasoning', text: 'Inspect the session\nCheck persistence' }]}
         streaming={false}

@@ -1,5 +1,5 @@
 ---
-description: "Shared React UI atoms for the dsh web client: controls, icons, markdown and math rendering, and the terminal/read/diff/search/web output cards (zero Cordis)."
+description: "Shared React UI atoms for the dsh web client: controls, icons, mdast markdown parsing and plain-text projection, code and JSON blocks, and the terminal/read/diff/search/web output cards (zero Cordis)."
 kind: "package-library"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Use `dsh-client-ui-primitives` to build web-client controls and render agent output with shared React UI. It includes standard controls, icons, anchored overlays, and renderers for Markdown with TeX, terminal output, file reads, diffs, search, web retrieval, and JSON. The renderers handle untrusted model output by dropping raw HTML, restricting links, and parsing ANSI escape sequences. The components import no Cordis runtime; callers supply localized labels, and theme-facing colors use `--dsw-*` design tokens.
+Use `dsh-client-ui-primitives` to build web-client controls and render agent output with shared React UI. It includes standard controls, icons, anchored overlays, the mdast grammars and plain-text projection that markdown consumers parse with, highlighted code and JSON blocks, and renderers for terminal output, file reads, diffs, search, and web retrieval. The renderers handle untrusted model output by parsing ANSI escape sequences. The components import no Cordis runtime; callers supply localized labels, and theme-facing colors use `--dsw-*` design tokens.
 
 ## Table of Contents
 
@@ -52,7 +52,8 @@ Check this table before writing a control in a feature package. A plugin cannot 
 | `HoverCard` | Hover preview the pointer can rest on and select from; optional copy button. |
 | `Toast` | Transient top-center banner held for the owner's `holdMs`. |
 | `JsonTree`, `JsonBlock` | Read-only JSON inspection. |
-| `MarkdownText`, `CodeBlock` | Untrusted GFM with TeX math and Mermaid diagrams, and highlighted code. `CodeBlock` accepts opt-in `lineNumbers`; copied source excludes the gutter, and `contentRef` exposes its stable source wrapper to an owner that uses it as a scrollport. |
+| `CodeBlock` | Highlighted fence code with an incremental streaming session. It accepts opt-in `lineNumbers`; copied source excludes the gutter, and `contentRef` exposes its stable source wrapper to an owner that uses it as a scrollport. |
+| `parseGfm`, `parseGfmWithMath`, `extractMarkdownPlainText` | The two mdast grammars and the plain-text projection over them; a markdown consumer parses and projects with these. |
 | `TerminalBlock`, `ReadBlock`, `DiffBlock`, `SearchBlock`, `WebBlock` | The agent-output card matching each tool-result intent. |
 | `icons/*`, `FishLogo`, `BrandWordmark`, `ReferenceIcon`, `LinkIcon` | Glyphs and brand marks. Use `LinkIcon` for 14px clickable-link categories. |
 | `FileTypeIcon`, `classifyFileType`, `fileExtension` | A category-colored 28px file or folder glyph and the shared case-insensitive filename mapping behind it. Code and configuration files use detailed full-color technology glyphs; use `LinkIcon` for link-leading glyphs and image previews for image content. |
@@ -71,12 +72,12 @@ The catalog above lists what each export is for; this section covers the behavio
 
 ### Rendering agent output
 
-`MarkdownText` renders untrusted GFM and TeX math, blocks unsafe links and images, and can turn resolved file mentions into explicit controls. When the owner passes a `pathImages` vocabulary, image destinations that are local media paths rewrite to displayable URLs on settled renders only (the same streaming gate as file mentions); without a vocabulary, local destinations remain inert alt text. A load or decode failure replaces the image with its authored alt text, or the original destination when alt is empty. Changing the image source permits a fresh load. While a reply streams, it freezes completed blocks, advances a top-level open fence by completed lines, and highlights that fence from saved Shiki grammar state. A `mermaid` fence keeps the code arm for the whole stream and becomes a diagram only on the settled pass, where Mermaid is imported on demand and each diagram is cached by its source. Diagram colors name `--dsw-*` tokens inside the SVG's own stylesheet, so a light/dark switch repaints a diagram without re-rendering it, and each mount rewrites Mermaid's render id so one cached SVG can back several mounts of the same fence. An invalid fence, an unparsable one, or one whose conversion never runs falls back to the code arm. Completed token lines enter fixed-size React groups, so later chunks reconcile only the growing group; an unchanged fence retains that DOM when the final full parse resolves cross-document syntax. `TerminalBlock`, `ReadBlock`, `DiffBlock`, `SearchBlock`, and `WebBlock` render the matching tool-result intent with copy controls, overflow handling, and ANSI processing where applicable. `JsonTree` and `JsonBlock` inspect JSON values read-only, while `projectUserText` projects sent user text into inline plain runs and reference chips for the message bubble and queue rows. When supplied with `UserTextReferences`, file and skill references become keyboard-accessible preview buttons using the same hover and focus styling as prose file links; the first pointer click can open a preview, while subsequent clicks and existing text selections retain native selection handling. Keyboard activation opens previews even when text is selected.
+`CodeBlock` renders one highlighted fence and resumes highlighting from saved Shiki grammar state as the fence grows, publishing only newly completed lines plus the mutable tail. Completed token lines enter fixed-size React groups, so later chunks reconcile only the growing group, and an unchanged fence retains that DOM across settlement. `TerminalBlock`, `ReadBlock`, `DiffBlock`, `SearchBlock`, and `WebBlock` render the matching tool-result intent with copy controls, overflow handling, and ANSI processing where applicable. `JsonTree` and `JsonBlock` inspect JSON values read-only, while `projectUserText` projects sent user text into inline plain runs and reference chips for the message bubble and queue rows. When supplied with `UserTextReferences`, file and skill references become keyboard-accessible preview buttons using the same hover and focus styling as prose file links; the first pointer click can open a preview, while subsequent clicks and existing text selections retain native selection handling. Keyboard activation opens previews even when text is selected.
 
 
 ### Localizing copy
 
-The atoms cannot read the application locale, so every piece of user-facing copy arrives through required label props. `HoverCard`, `TerminalBlock`, `JsonTree`, `CodeBlock`, `MarkdownText`, `JsonBlock`, `ConnectionIndicator`, `Modal`, `DiffBlock`, `ReadBlock`, `SearchBlock`, and `WebBlock` accept complete localized labels. The package owns no language fallback; omission fails typechecking, and each feature maps its typed `t` seat into the primitive's label interface.
+The atoms cannot read the application locale, so every piece of user-facing copy arrives through required label props. `HoverCard`, `TerminalBlock`, `JsonTree`, `CodeBlock`, `JsonBlock`, `ConnectionIndicator`, `Modal`, `DiffBlock`, `ReadBlock`, `SearchBlock`, and `WebBlock` accept complete localized labels. The package owns no language fallback; omission fails typechecking, and each feature maps its typed `t` seat into the primitive's label interface.
 
 -----
 
@@ -93,8 +94,8 @@ The package enforces one separation: presentational React atoms with zero Cordis
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Public atom exports |
-| [`src/markdown/`](src/markdown/) | Markdown, math, and diagram pipeline: micromark parsing, KaTeX typesetting, Mermaid fence rendering, the incremental streaming renderer, `CodeBlock`/`JsonBlock` |
-| [`src/dom-to-react.tsx`](src/dom-to-react.tsx) | The DOM→React mapping both third-party renderers use to turn their own serialized output into elements instead of injected markup |
+| [`src/markdown/`](src/markdown/) | mdast grammars and plain-text projection (`parse.ts`, `plain-text.ts`), Shiki highlighting, and `CodeBlock`/`JsonBlock` |
+| [`src/markdown/useViewportHighlighting.ts`](src/markdown/useViewportHighlighting.ts) | Activates one code surface's highlight work when it first intersects the viewport |
 | [`src/useViewportActivation.ts`](src/useViewportActivation.ts) | The document-wide observer that defers expensive render work until a surface first intersects the viewport |
 | [`src/TerminalBlock.tsx`](src/TerminalBlock.tsx) | ANSI escape parsing (`anser`) and terminal card rendering |
 | [`src/ReadBlock.tsx`](src/ReadBlock.tsx) / [`src/DiffBlock.tsx`](src/DiffBlock.tsx) | Read and diff cards |
@@ -104,9 +105,9 @@ The package enforces one separation: presentational React atoms with zero Cordis
 | [`src/code-file-icon-artwork.manifest.json`](src/code-file-icon-artwork.manifest.json) | Design-export digests, included categories, and intentionally excluded artwork |
 | [`src/useAnchoredPosition.ts`](src/useAnchoredPosition.ts) / [`src/useAnchoredMaxHeight.ts`](src/useAnchoredMaxHeight.ts) | Floating-panel and overlay geometry hooks |
 
-### Streaming markdown
+### Streaming code highlighting
 
-While a reply streams, `MarkdownText` parses incrementally: all but the trailing two blocks freeze as cached React elements and only the source tail re-parses per chunk, so per-chunk work tracks the tail instead of the whole reply. A final unclosed top-level fence keeps its parsed code node and sends only the last completed line plus the current partial line through the same GFM grammar; a closing fence or ambiguous parse returns to the ordinary tail path. Highlighting likewise resumes from saved Shiki grammar state and publishes only newly completed lines plus the mutable tail. `CodeBlock` seals completed lines into fixed-size React groups, reuses earlier groups, and retains the whole highlighted tree across settlement when code and language are unchanged. The settled full parse still resolves references that crossed the freeze boundary.
+While a fence grows, `CodeBlock` resumes highlighting from saved Shiki grammar state and publishes only newly completed lines plus the mutable tail. It seals completed lines into fixed-size React groups, reuses earlier groups, and retains the whole highlighted tree across settlement when code and language are unchanged. `ReadBlock` gates its highlighting the same way.
 
 ### Geometry and overflow
 
@@ -123,7 +124,8 @@ These pages place the atoms in the client stack and the design system.
 
 - [ui-renderer](../ui-renderer/README.md) — the React renderer that mounts the assembled application and binds slot data.
 - [ui-tool](../ui-tool/README.md) — the tool-call presentation layer that composes these output cards.
-- [ui-conversation](../ui-conversation/README.md) — the chat surface that renders markdown replies and tool cards.
+- [ui-markdown](../ui-markdown/README.md) — the markdown renderer that parses with these grammars and draws fences through `CodeBlock`.
+- [ui-conversation](../ui-conversation/README.md) — the chat surface that composes these tool cards.
 - [ui-theme](../ui-theme/README.md) — the `--dsw-*` token system these atoms style through.
 - [Web styling](../../../docs/web-styling.md) — the authoritative styling rules for web client components.
 
@@ -145,13 +147,10 @@ None; this package neither assembles nor sends a provider request.
 
 These limits define how the atoms behave at the edges; they are current package constraints, not a component roadmap.
 
-- **Streaming defers cross-boundary reference resolution** — a reference-style link or footnote whose definition sits on the other side of the incremental freeze boundary renders as literal text while the reply streams; the settled full parse at finalize resolves it.
 - **A long highlighted fence retains its complete token DOM** — streaming avoids re-parsing, re-tokenizing, and reconciling the completed prefix, but it does not discard old colors or virtualize token spans. Final DOM cardinality therefore still follows the fence's token count; nested/container fences and a pathological single long line remain on the general tail path.
 - **Glyph-level icons are redrawn approximations** — the fish logo and the sparkle mark come from font glyphs whose vector geometry is not exportable from the local design data; hand-authored recreations stand in until an exact export path exists.
 - **`Pill` and `Input` have no design source** — both atoms are self-defined; the sidebar search field and view-tab strip that resemble them are consumer-owned compositions, not these atoms.
 - **No `Active` `StateDot` variant** — the supported states are done, warning, ongoing, error, and idle.
-- **Categorical diagram palettes stay Mermaid's** — pie, mindmap, timeline, gitgraph, sankey, radar, treemap, and xychart colors encode categories rather than surface, so they keep the library palette and are baked at render: they follow neither `--dsw-*` tokens nor a live theme switch.
-- **`htmlLabels: false` costs label wrapping** — a diagram label longer than its node overflows instead of wrapping. The setting is what keeps a diagram's output a pure SVG vocabulary with no HTML island, which is the trade this package takes.
 - **User-facing copy is required at the render site** — the atoms are zero-Cordis and cannot reach `ctx.locale`; each feature must supply complete localized labels through the primitive's typed props ([decision](../../../.agents/notes/implemented/architecture/2026-08-23-locale-owned-client-ui-copy.md)).
 - **`TerminalBlock` is not a terminal emulator** — it renders settled or still-running command output, not an interactive session: SGR colors, carriage return, backspace, erase-in-line, tab stops, and character width are honored; absolute cursor positioning, screen clearing, and alternate-screen sequences are stripped.
 

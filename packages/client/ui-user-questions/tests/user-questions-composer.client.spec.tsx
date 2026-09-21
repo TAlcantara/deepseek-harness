@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
+import type { MarkdownSeatOwnerProps } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import { useSyncExternalStore } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
@@ -10,6 +11,7 @@ import { QuestionComposer, parseRecommendedLabel } from '../src/client/QuestionC
 import { en, zh } from '../src/client/locales.ts'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import { renderMarkdown } from './seat.client.tsx'
 
 // Every session-scope fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
@@ -130,6 +132,14 @@ const kitBase: Omit<QuestionComposerProps, 'matched' | 'useStore' | 'actions'> =
     pruneAttachments: () => { throw new Error('unused') },
     submit: () => { throw new Error('unused') },
   },
+  // The markdown seat the entry declares: these specs assert the question
+  // surface, so the seat renders the real document renderer directly and no
+  // fence rule claims a fence.
+  renderSlot: ((key: string, owner: MarkdownSeatOwnerProps) => (
+    key === 'conversation.composer.markdown' ? renderMarkdown(owner) : null
+  )) as unknown as QuestionComposerProps['renderSlot'],
+  renderSlotChain: ((_key: string, _owner: object, opts?: { fallback?: unknown }) => opts?.fallback ?? null) as unknown as QuestionComposerProps['renderSlotChain'],
+  SessionProvider: ({ children }) => <>{children}</>,
   // The seat's key domain is question ∪ common.
   t: seatOver(zh, commonZh),
 }

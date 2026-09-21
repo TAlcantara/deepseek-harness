@@ -1,10 +1,14 @@
 /** Trajectory view: compact summary over a turn-aware event ledger. */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import type {
   AssistantBlock, AssistantMessageNode, ConvViewProps, MessageImageLoader, RenderMessageImages,
   ToolCallBlock,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {
+  MarkdownFenceRequest, MarkdownSeatRenderer,
+} from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { InjectFace, PropsLocale, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import {
@@ -128,15 +132,30 @@ function addUsage(
 
 export function TrajectoryView({
   useSession, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
-  viewRequest, completeViewRequest, renderSlot, t,
+  viewRequest, completeViewRequest, renderSlot, renderSlotChain, t,
 }: ConvViewProps
-  & PropsRenderSlots<'conversation.trajectory.images'>
+  & PropsRenderSlots<
+    | 'conversation.trajectory.images'
+    | 'conversation.trajectory.markdown'
+    | 'conversation.trajectory.markdown.fence'
+  >
   & InjectFace<TrajectoryViewInjected>
   & PropsLocale<'trajectory'>) {
   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
   const renderImages = useCallback<RenderMessageImages>(
     owner => renderSlot('conversation.trajectory.images', { ...owner, loadImage }),
     [loadImage, renderSlot],
+  )
+  // Stable closures: the seat bakes both into the renderer's streaming cache,
+  // and a new identity mid-document would discard it.
+  const renderFence = useCallback(
+    (request: MarkdownFenceRequest, fallback: ReactNode): ReactNode =>
+      renderSlotChain('conversation.trajectory.markdown.fence', request, { fallback }),
+    [renderSlotChain],
+  )
+  const renderMarkdown = useCallback<MarkdownSeatRenderer>(
+    owner => renderSlot('conversation.trajectory.markdown', { ...owner, renderFence }),
+    [renderSlot, renderFence],
   )
   const [collapsedAssistants, setCollapsedAssistants] =
     useState<ReadonlySet<string>>(EMPTY_RECORD_IDS)
@@ -542,6 +561,7 @@ export function TrajectoryView({
         <TrajectoryTable
           t={t}
           renderImages={renderImages}
+          renderMarkdown={renderMarkdown}
           requestNumbers={requestNumbers}
           turns={timelineTurns}
           streamingCells={streamingCells}

@@ -1,10 +1,14 @@
-import { useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useCallback, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import {
   Button, IconCheckOutline14, IconChevronDownOutline14, IconChevronLeftOutline14,
   IconChevronRightOutline14, IconChevronUpOutline14, IconCloseOutline16,
-  IconEditOutline16, MarkdownText,
+  IconEditOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type {
+  MarkdownFenceRequest, MarkdownSeatRenderer,
+} from '@deepseek-ai/dsh-client-ui-markdown/client'
 import {
   planReviewOf,
   type QuestionAnswer, type QuestionComposerProps,
@@ -112,30 +116,47 @@ function AnswerField(props: AnswerFieldProps) {
  */
 export function QuestionComposer(props: QuestionComposerProps) {
   const question = props.matched
+  const { renderSlot, renderSlotChain, t } = props
+  // Stable closures: the seat bakes both into the renderer's streaming cache,
+  // and a new identity mid-document would discard it.
+  const renderFence = useCallback(
+    (request: MarkdownFenceRequest, fallback: ReactNode): ReactNode =>
+      renderSlotChain('conversation.composer.markdown.fence', request, { fallback }),
+    [renderSlotChain],
+  )
+  const renderMarkdown = useCallback<MarkdownSeatRenderer>(
+    owner => renderSlot('conversation.composer.markdown', { ...owner, renderFence }),
+    [renderSlot, renderFence],
+  )
   const review = useMemo(() => planReviewOf(question.questions), [question])
   return review === undefined
     ? (
       <QuestionFlow
         key={question.key}
         pending={question}
-        t={props.t}
+        renderMarkdown={renderMarkdown}
+        t={t}
         useStore={props.useStore}
         actions={props.actions}
       />
     )
-    : <PlanReviewPanel key={question.key} pending={question} review={review} t={props.t} />
+    : (
+      <PlanReviewPanel
+        key={question.key}
+        pending={question}
+        review={review}
+        renderMarkdown={renderMarkdown}
+        t={t}
+      />
+    )
 }
 
 type QuestionFlowProps =
-  { pending: PendingQuestion } & Pick<QuestionComposerProps, 't' | 'useStore' | 'actions'>
+  { pending: PendingQuestion; renderMarkdown: MarkdownSeatRenderer }
+  & Pick<QuestionComposerProps, 't' | 'useStore' | 'actions'>
 
-function QuestionFlow({ pending, t, useStore, actions }: QuestionFlowProps) {
+function QuestionFlow({ pending, renderMarkdown, t, useStore, actions }: QuestionFlowProps) {
   const questions = pending.questions
-  const markdownLabels = useMemo(() => ({
-    code: { copyLabel: t('copy'), copiedLabel: t('copied') },
-    footnotes: t('markdown.footnotes'),
-    diagram: t('markdown.diagram'),
-  }), [t])
   const initialProgress = useMemo<QuestionDraftProgress>(() => ({
     index: 0,
     drafts: questions.map(() => ({ selected: [], custom: '', skipped: false })),
@@ -314,7 +335,7 @@ function QuestionFlow({ pending, t, useStore, actions }: QuestionFlowProps) {
           <>
             <div className={css.body} data-question-scroll>
               {question.detail !== undefined && (
-                <div className={css.detail}><MarkdownText text={question.detail} labels={markdownLabels} /></div>
+                <div className={css.detail}>{renderMarkdown({ text: question.detail, streaming: false })}</div>
               )}
               <div className={css.options} role={question.multiSelect === true ? 'group' : 'radiogroup'}>
                 {(question.options ?? []).map((option, optionIndex) => {

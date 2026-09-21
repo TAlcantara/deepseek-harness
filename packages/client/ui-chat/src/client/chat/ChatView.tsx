@@ -1,12 +1,13 @@
 // An enclosing `[data-conversation-scroll]` owns scrolling when present;
 // otherwise this view owns it. Each row subscribes to one stable node key.
 
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import type {
   ConversationTimelineSnapshot, RenderMessageImages,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionSeq } from '@deepseek-ai/dsh-session/types'
 import { Button, IconChevronDownOutline14, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownFenceRequest, MarkdownSeatRenderer } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type { ChatViewSlotProps, OpenFileOptions } from '../contract/slots.ts'
 import type { ChatSnapshot } from '../contract/snapshot.ts'
 import { PendingSteeringBubble, PendingSubmissionBubble } from './MessageItem.tsx'
@@ -215,7 +216,8 @@ const ChatNodeList = memo(function ChatNodeList({ order, ...seatProps }: ChatNod
  * ordered business Node crosses the keyed renderer seat.
  */
 export function ChatView({
-  useSession, useChat, useChatNode, useChatNodeProcess, useSessions, useStore, actions, renderSlot,
+  useSession, useChat, useChatNode, useChatNodeProcess, useSessions, useStore, actions,
+  renderSlot, renderSlotChain,
   sessionId, openFile, openSkill, loadOlder, loadThrough, loadImage, openView, chatScroll, forkAt, fileMentions,
   useTranscriptView, useProjection, t,
 }: ChatViewSlotProps) {
@@ -298,6 +300,17 @@ export function ChatView({
   const renderMessageImages = useCallback<RenderMessageImages>(
     owner => renderSlot('conversation.message.images', { ...owner, loadImage }),
     [loadImage, renderSlot],
+  )
+  // Stable closures: the seat and the document renderer cache on their
+  // identity, so a new one mid-message would discard the streaming cache.
+  const renderFence = useCallback(
+    (request: MarkdownFenceRequest, fallback: ReactNode): ReactNode =>
+      renderSlotChain('conversation.chat.markdown.fence', request, { fallback }),
+    [renderSlotChain],
+  )
+  const renderMarkdown = useCallback<MarkdownSeatRenderer>(
+    owner => renderSlot('conversation.chat.markdown', { ...owner, renderFence }),
+    [renderSlot, renderFence],
   )
   const runningTurnStart = useMemo(() => runningTurnStartTime(timeline), [timeline])
 
@@ -796,6 +809,7 @@ export function ChatView({
             forkAt={forkAt}
             loadImage={loadImage}
             renderMessageImages={renderMessageImages}
+            renderMarkdown={renderMarkdown}
             fileMentions={fileMentions}
             renderSlot={renderSlot}
             t={t}

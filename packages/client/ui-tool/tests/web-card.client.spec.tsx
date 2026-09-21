@@ -123,14 +123,23 @@ describe('webCardModel', () => {
 })
 
 describe('chat row web body', () => {
-  const ownerProps = (block: RunningToolCall | ToolResultNode, toolName: string): ToolCallOwnerProps => ({
+  const ownerProps = (
+    block: RunningToolCall | ToolResultNode,
+    toolName: string,
+    renderMarkdown: ToolCallOwnerProps['renderMarkdown'] = () => null,
+  ): ToolCallOwnerProps => ({
     callId: block.callId, toolName, block, openFile: vi.fn(), loadImage: vi.fn(() => Promise.reject(new Error('not used'))),
+    renderMarkdown,
   })
   // WebRow reads only toolName/block off the full runtime share plus the locale
   // seat; the standard kit is unused, so the cast supplies the owner slice and
   // `t` alone (as BashRow's tests do for the terminal card).
-  const rowProps = (block: RunningToolCall | ToolResultNode, toolName: string): Parameters<typeof WebRow>[0] =>
-    ({ ...ownerProps(block, toolName), t } as unknown as Parameters<typeof WebRow>[0])
+  const rowProps = (
+    block: RunningToolCall | ToolResultNode,
+    toolName: string,
+    renderMarkdown?: ToolCallOwnerProps['renderMarkdown'],
+  ): Parameters<typeof WebRow>[0] =>
+    ({ ...ownerProps(block, toolName, renderMarkdown), t } as unknown as Parameters<typeof WebRow>[0])
 
   /** The whole summary row is the expand toggle (ToolRow's unified interaction). */
   const toggleRow = (view: { container: HTMLElement }) => {
@@ -181,6 +190,27 @@ describe('chat row web body', () => {
     expect(view.container.querySelector('[data-web]')).toBeNull()
     // The row reflects the error state so the summary line still reads as failed.
     expect(view.container.querySelector('[data-state="error"]')).not.toBeNull()
+  })
+
+  it('renders the search answer through the owner markdown seat, and plain text without one', () => {
+    const renderMarkdown = vi.fn(() => null)
+    const view = render(<WebRow {...rowProps(settledSearch(), 'web_search', renderMarkdown)} />)
+    toggleRow(view)
+    expect(renderMarkdown).toHaveBeenCalledWith({ text: 'A short answer.', streaming: false })
+
+    // A fetch card carries no authored answer, so the seat never runs for it.
+    renderMarkdown.mockClear()
+    const fetch = render(<WebRow {...rowProps(settledFetch(), 'web_fetch', renderMarkdown)} />)
+    toggleRow(fetch)
+    expect(renderMarkdown).not.toHaveBeenCalled()
+  })
+
+  it('the GenericToolCard fallback renders a web card through the owner markdown seat', () => {
+    const renderMarkdown = vi.fn(() => null)
+    const view = render(<GenericToolCard {...ownerProps(settledSearch(), 'web_search', renderMarkdown)} t={t} />)
+    toggleRow(view)
+    expect(view.container.querySelector('[data-web="search"]')).not.toBeNull()
+    expect(renderMarkdown).toHaveBeenCalledWith({ text: 'A short answer.', streaming: false })
   })
 
   it('the GenericToolCard fallback does not promote an unknown tool from metadata alone', () => {

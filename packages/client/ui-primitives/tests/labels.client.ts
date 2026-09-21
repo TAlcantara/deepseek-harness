@@ -1,17 +1,15 @@
 import type {
   DiffBlockLabels,
   JsonTreeLabels,
-  MarkdownLabels,
   ReadBlockLabels,
   SearchBlockLabels,
   TerminalBlockLabels,
   WebBlockLabels,
 } from '../src/index.ts'
 
-export const markdownLabels: MarkdownLabels = {
-  code: { copyLabel: '复制', copiedLabel: '复制成功' },
-  footnotes: 'Footnotes',
-  diagram: '图表',
+/** Fence copy chrome for the specs that render a code block directly. */
+export const codeCopyLabels = {
+  copyLabel: '复制', copiedLabel: '复制成功',
 }
 
 export const diffBlockLabels: DiffBlockLabels = {
@@ -61,5 +59,5 @@ export const jsonTreeLabels: JsonTreeLabels = {
 
 export const webBlockLabels: WebBlockLabels = {
   noResults: '未找到结果', sourcesTruncated: '来源列表已截断',
-  http: 'HTTP', contentTruncated: '内容已截断', markdown: markdownLabels,
+  http: 'HTTP', contentTruncated: '内容已截断',
 }

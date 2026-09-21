@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-/** Markdown preview uses one accumulated document across page arrivals and EOF. */
-import { afterEach, describe, expect, it } from 'vitest'
+/** MarkdownBody hosts the renderer's seat over the document owner's accumulated text. */
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
-import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import type { ReactNode } from 'react'
+import type { ChainRenderOpts } from '@deepseek-ai/dsh-client-ui-slots'
+import type { MarkdownFenceRequest, MarkdownSeatOwnerProps } from '@deepseek-ai/dsh-client-ui-markdown/client'
 import { MarkdownBody, type MarkdownBodyProps } from '../src/client/markdown/MarkdownBody.tsx'
-import { en, zh } from '../src/client/markdown/locales.ts'
 import type { DocumentContent } from '../src/client/document/contract.ts'
 
 afterEach(cleanup)
@@ -20,84 +21,73 @@ function content(pageTexts: readonly string[], eof: boolean): DocumentContent {
   return { kind: 'text', text: pageTexts.join('\n'), pages, eof }
 }
 
-// The body reads content and locale only; the other standard seats belong to the slot integration tests.
-function props(value: DocumentContent, t: MarkdownBodyProps['t'] = makeTranslate(en)): MarkdownBodyProps {
-  return { resourceAddress: 'dsh-resource://file/session/markdown/notes.md', content: value, wrap: false, t } as MarkdownBodyProps
+// Seat and fence doubles: this body owns the wiring between the document
+// owner and the seat it declares, and the renderer behind the seat has its own
+// suite. The remaining standard seats belong to the slot integration tests.
+function props(value: DocumentContent) {
+  const owners: MarkdownSeatOwnerProps[] = []
+  const fences: MarkdownFenceRequest[] = []
+  const renderSlot = vi.fn((_key: string, owner: MarkdownSeatOwnerProps): ReactNode => {
+    owners.push(owner)
+    return <span data-seat data-streaming={owner.streaming}>{owner.text}</span>
+  })
+  const renderSlotChain = vi.fn(
+    (_key: string, request: MarkdownFenceRequest, opts?: ChainRenderOpts): ReactNode => {
+      fences.push(request)
+      // No rule is registered in this double, so every request declines and the
+      // chain draws the fallback the renderer handed the surface.
+      return opts?.fallback ?? null
+    },
+  )
+  return {
+    owners,
+    fences,
+    renderSlot,
+    renderSlotChain,
+    props: {
+      resourceAddress: 'dsh-resource://file/session/markdown/notes.md',
+      content: value, wrap: false, renderSlot, renderSlotChain,
+    } as unknown as MarkdownBodyProps,
+  }
 }
 
 describe('MarkdownBody', () => {
-  it('renders GFM headings, tables, task lists, strikeout, and localized code and footnote chrome', () => {
-    const text = [
-      '# Notes', '', '| Item | Value |', '| --- | --- |', '| a | 1 |', '',
-      '- [x] Done', '- [ ] Pending', '', '~~Old~~ and **new**.', '',
-      '```ts', 'const answer = 42', '```', '', 'Note[^one].', '', '[^one]: Detail.',
-    ].join('\n')
-    const view = render(<MarkdownBody {...props(content([text], true))} />)
-    expect(view.getByRole('heading', { name: 'Notes' })).toBeDefined()
-    expect(view.getAllByRole('columnheader').map(node => node.textContent)).toEqual(['Item', 'Value'])
-    expect(view.getAllByRole('cell').map(node => node.textContent)).toEqual(['a', '1'])
-    const tasks = view.getAllByRole('checkbox') as HTMLInputElement[]
-    expect(tasks.map(task => task.checked)).toEqual([true, false])
-    expect(tasks.every(task => task.disabled)).toBe(true)
-    expect(view.container.querySelector('del')?.textContent).toBe('Old')
-    expect(view.container.querySelector('strong')?.textContent).toBe('new')
-    expect(view.getByRole('button', { name: 'Copy' })).toBeDefined()
-    expect(view.getByRole('heading', { name: 'Footnotes' })).toBeDefined()
-    expect(view.container.querySelector('pre')?.textContent).toBe('const answer = 42')
+  it('renders the seat over the accumulated text and mirrors EOF as the streaming flag', () => {
+    const page = props(content(['# Notes', 'Body.'], false))
+    const view = render(<MarkdownBody {...page.props} />)
+    expect(view.container.querySelector('[data-document-markdown]')).not.toBeNull()
+    expect(view.container.querySelector('[data-seat]')?.textContent).toBe('# Notes\nBody.')
+    expect(view.container.querySelector('[data-seat]')?.getAttribute('data-streaming')).toBe('true')
+
+    view.rerender(<MarkdownBody {...page.props} content={content(['# Notes', 'Body.'], true)} />)
+    expect(view.container.querySelector('[data-seat]')?.getAttribute('data-streaming')).toBe('false')
   })
 
-  it('retains the Markdown and highlighted fence elements as pages extend and close a fence', () => {
-    const first = '# Notes\n\nIntroduction.\n\n```ts\nconst first = 1'
-    const second = 'const second = 2\n```\n\nFollowing paragraph.'
-    const view = render(<MarkdownBody {...props(content([first], false))} />)
-    const document = view.container.querySelector('[data-document-markdown]')
-    const heading = view.getByRole('heading', { name: 'Notes' })
-    const code = view.container.querySelector('pre.shiki')
-    const firstLine = code?.querySelector('.line')
-    expect(firstLine?.textContent).toBe('const first = 1')
+  it('keeps one fence renderer across page arrivals and routes fence requests to the declared fence seat', () => {
+    const page = props(content(['Intro.'], false))
+    const view = render(<MarkdownBody {...page.props} />)
+    const fence = page.owners[0]?.renderFence
+    expect(fence).toBeDefined()
 
-    view.rerender(<MarkdownBody {...props(content([first, second], false))} />)
-    expect(view.container.querySelector('[data-document-markdown]')).toBe(document)
-    expect(view.getByRole('heading', { name: 'Notes' })).toBe(heading)
-    expect(view.container.querySelectorAll('pre')).toHaveLength(1)
-    expect(view.container.querySelector('pre.shiki')).toBe(code)
-    expect(code?.querySelector('.line')).toBe(firstLine)
-    expect(code?.textContent).toBe('const first = 1\nconst second = 2')
-    expect(view.getByText('Following paragraph.')).toBeDefined()
+    view.rerender(<MarkdownBody {...page.props} content={content(['Intro.', 'More.'], false)} />)
+    expect(page.owners[1]?.renderFence).toBe(fence)
 
-    view.rerender(<MarkdownBody {...props(content([first, second], true))} />)
-    expect(view.container.querySelector('pre.shiki')).toBe(code)
-    expect(code?.querySelector('.line')).toBe(firstLine)
-  })
-
-  it('resolves cross-page references and math when the cumulative text reaches EOF', () => {
-    const first = 'Read [the guide][guide].\n\nFirst.\n\nSecond.\n\nThird.\n\nFourth.'
-    const second = '\n[guide]: https://example.test/guide\n\nValue $x^2$.'
-    const view = render(<MarkdownBody {...props(content([first], false))} />)
-    view.rerender(<MarkdownBody {...props(content([first, second], false))} />)
-    expect(view.container.querySelector('.katex')).toBeNull()
-    view.rerender(<MarkdownBody {...props(content([first, second], true))} />)
-    expect(view.container.querySelector('a[href="https://example.test/guide"]')?.textContent).toBe('the guide')
-    expect(view.container.querySelector('.katex')).not.toBeNull()
-  })
-
-  it('updates labels when translations change without replacing the translation function', () => {
-    let dictionary = en
-    const t: MarkdownBodyProps['t'] = key => Object.hasOwn(dictionary, key) ? dictionary[key as keyof typeof dictionary] : key
-    const text = '```ts\nconst answer = 42\n```\n\nNote[^one].\n\n[^one]: Detail.'
-    const value = content([text], true)
-    const view = render(<MarkdownBody {...props(value, t)} />)
-    expect(view.getByRole('button', { name: 'Copy' })).toBeDefined()
-    dictionary = zh
-    view.rerender(<MarkdownBody {...props(value, t)} />)
-    expect(view.getByRole('button', { name: '复制' })).toBeDefined()
-    expect(view.getByRole('heading', { name: '脚注' })).toBeDefined()
+    const request: MarkdownFenceRequest = { kind: 'fence', lang: 'ts', info: 'ts', source: 'const value = 1', streaming: false }
+    const fallback = <span data-fence-fallback />
+    expect(fence?.(request, fallback)).toBe(fallback)
+    expect(page.renderSlotChain).toHaveBeenCalledWith(
+      'sidebar.right.tab.document.markdown.fence', request, { fallback },
+    )
+    expect(page.fences).toEqual([request])
   })
 
   it('renders empty text and leaves non-text deliveries to their selected implementation', () => {
-    const view = render(<MarkdownBody {...props({ kind: 'text', text: '', pages: [], eof: true })} />)
-    expect(view.container.querySelector('[data-document-markdown]')?.textContent).toBe('')
-    view.rerender(<MarkdownBody {...props({ kind: 'bytes', data: new TextEncoder().encode('text') })} />)
+    const view = render(<MarkdownBody {...props({ kind: 'text', text: '', pages: [], eof: true }).props} />)
+    expect(view.container.querySelector('[data-seat]')?.textContent).toBe('')
+
+    const bytes = props({ kind: 'bytes', data: new TextEncoder().encode('text') })
+    view.rerender(<MarkdownBody {...bytes.props} />)
     expect(view.container.childElementCount).toBe(0)
+    expect(bytes.renderSlot).not.toHaveBeenCalled()
   })
 })

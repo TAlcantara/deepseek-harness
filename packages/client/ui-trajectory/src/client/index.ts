@@ -12,6 +12,9 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 // Type-only: the 'conversation.view' SlotMap row (declared by the slot's
 // owning package) must be in the program for the register calls to type.
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+// Type-only: the trajectory markdown seat rows (declared by the slot's owning
+// package) must be in the program for the children declaration to type.
+import type {} from '@deepseek-ai/dsh-client-ui-markdown/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import { createTrajectoryDurationStore } from './duration-store.ts'
@@ -82,6 +85,8 @@ export function apply(ctx: Context): void {
     label: () => t('view.trajectory'),
     children: {
       'conversation.trajectory.images': { kind: 'single', scope: 'session' },
+      'conversation.trajectory.markdown': { kind: 'single', scope: 'session' },
+      'conversation.trajectory.markdown.fence': { kind: 'chain', scope: 'session' },
     },
     inject: (sessionId: SessionId): TrajectoryViewInjected => {
       const session = ctx.sessions.binding(sessionId)?.session

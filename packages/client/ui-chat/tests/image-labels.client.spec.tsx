@@ -7,6 +7,7 @@ import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type { RenderMessageImages } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { AssistantMarkdown } from '../src/client/chat/AssistantMarkdown.tsx'
+import { renderMarkdown } from './seat.client.tsx'
 import { zh } from '../src/client/locale.ts'
 
 afterEach(cleanup)
@@ -44,6 +45,7 @@ describe('assistant image slot handoff', () => {
     const calls: MessageImagesRenderOwner[] = []
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[{ kind: 'image', attachment }]}
         streaming={false}
@@ -59,6 +61,7 @@ describe('assistant image slot handoff', () => {
     const calls: MessageImagesRenderOwner[] = []
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[
           { kind: 'image', attachment },
@@ -80,6 +83,7 @@ describe('assistant image slot handoff', () => {
     const calls: MessageImagesRenderOwner[] = []
     const view = render(
       <AssistantMarkdown
+        renderMarkdown={renderMarkdown}
         t={t}
         blocks={[
           { kind: 'text', text: 'before' },

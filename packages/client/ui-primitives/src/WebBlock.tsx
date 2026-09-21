@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { MarkdownText, type MarkdownLabels } from './markdown/MarkdownText.tsx'
+import type { ReactNode } from 'react'
 import { LinkIcon } from './LinkIcon.tsx'
 import css from './WebBlock.module.css'
 
@@ -26,6 +26,14 @@ export interface WebSearchBlockProps {
   labels: WebBlockLabels
   /** The provider-generated answer, rendered as markdown above the sources. */
   answer?: string | undefined
+  /**
+   * Render the answer as rich text. The owning render site supplies it, because
+   * whether an answer is markdown — and which renderer draws it — is the
+   * owner's decision; without it the answer renders as plain text.
+   * @param answer - The provider-generated answer, verbatim.
+   * @returns The rendered answer body.
+   */
+  renderAnswer?: ((answer: string) => ReactNode) | undefined
   /** The cited sources, in provider order. */
   sources: WebSourceView[]
   /** True when the tool cut the source list to its result cap. */
@@ -58,7 +66,6 @@ export interface WebBlockLabels {
   sourcesTruncated: string
   http: string
   contentTruncated: string
-  markdown: MarkdownLabels
 }
 
 /**
@@ -147,7 +154,7 @@ function SourceItem({ source, ordinal }: { source: WebSourceView; ordinal: numbe
  * @param props - see {@link WebSearchBlockProps}.
  * @returns the search card element.
  */
-function WebSearchBlock({ answer, sources, truncated, labels, className }: WebSearchBlockProps) {
+function WebSearchBlock({ answer, renderAnswer, sources, truncated, labels, className }: WebSearchBlockProps) {
   // A provider may legitimately return no answer and no sources; the chat WebRow
   // does not show the raw result content, so without this the user would see an
   // empty card. Mirror the backend's `No results found.` render text.
@@ -155,7 +162,7 @@ function WebSearchBlock({ answer, sources, truncated, labels, className }: WebSe
   return (
     <div className={clsx(css.block, className)} data-web="search">
       {answer !== undefined && answer !== '' && (
-        <div className={css.answer}><MarkdownText text={answer} labels={labels.markdown} /></div>
+        <div className={css.answer}>{renderAnswer === undefined ? answer : renderAnswer(answer)}</div>
       )}
       {empty ? (
         <div className={css.empty}>{labels.noResults}</div>

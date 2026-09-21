@@ -70,6 +70,12 @@ export interface ToolRowProps {
   loadImage?: MessageImageLoader | undefined
   search?: SearchCardModel | null | undefined
   web?: WebCardModelProps | null | undefined
+  /**
+   * Render a web-search answer as rich text: the toolview supplies it from the
+   * owner's markdown seat, because whether an answer is markdown is that
+   * surface's decision. Absent = the answer renders as plain text.
+   */
+  renderAnswer?: ((answer: string) => ReactNode) | undefined
   state: ToolRowState
   /**
    * Filesystem path from tool args; when set with onOpenFile, the summary
@@ -128,6 +134,7 @@ export function ToolRow({
   loadImage,
   search,
   web,
+  renderAnswer,
   state,
   filePath,
   filePathLine,
@@ -287,7 +294,11 @@ export function ToolRow({
                         </>
                       )
                       : webBody !== null
-                        ? <WebBlock {...webBody} labels={webLabels} className={css.webBody} />
+                        // The answer renderer belongs to the search arm alone;
+                        // a fetch card carries no authored markdown.
+                        ? webBody.kind === 'search'
+                          ? <WebBlock {...webBody} labels={webLabels} renderAnswer={renderAnswer} className={css.webBody} />
+                          : <WebBlock {...webBody} labels={webLabels} className={css.webBody} />
                         : (
                           <>
                             {variant === 'code' && bodyText !== null && (

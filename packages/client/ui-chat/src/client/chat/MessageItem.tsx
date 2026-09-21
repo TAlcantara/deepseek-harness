@@ -352,8 +352,10 @@ export const ContextMessageNodeView = memo(function ContextMessageNodeView({ nod
 })
 
 /** Automatic compaction keyed Chat renderer. */
-export const CompactionNodeView = memo(function CompactionNodeView({ node, t }: ChatNodeViewProps<'compaction'>) {
-  return <CompactionItem node={node.data} t={t} />
+export const CompactionNodeView = memo(function CompactionNodeView({
+  node, renderMarkdown, t,
+}: ChatNodeViewProps<'compaction'>) {
+  return <CompactionItem node={node.data} renderMarkdown={renderMarkdown} t={t} />
 })
 
 /** Correlated retry-chain keyed Chat renderer. */

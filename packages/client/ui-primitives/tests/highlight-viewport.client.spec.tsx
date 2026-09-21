@@ -4,7 +4,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ReadBlock } from '../src/ReadBlock.tsx'
 import { CodeBlock } from '../src/markdown/CodeBlock.tsx'
-import { markdownLabels, readBlockLabels } from './labels.client.ts'
+import { codeCopyLabels, readBlockLabels } from './labels.client.ts'
 
 class IntersectionObserverStub {
   static instances: IntersectionObserverStub[] = []
@@ -57,9 +57,9 @@ describe('viewport-activated syntax highlighting', () => {
   it('keeps offscreen blocks plain and permanently activates only intersecting blocks', async () => {
     const view = render(
       <>
-        <CodeBlock code="const first = 1" lang="ts" {...markdownLabels.code} />
-        <CodeBlock code="const second = 2" lang="ts" {...markdownLabels.code} />
-        <CodeBlock code="const third = 3" lang="ts" {...markdownLabels.code} />
+        <CodeBlock code="const first = 1" lang="ts" {...codeCopyLabels} />
+        <CodeBlock code="const second = 2" lang="ts" {...codeCopyLabels} />
+        <CodeBlock code="const third = 3" lang="ts" {...codeCopyLabels} />
       </>,
     )
     const blocks = [...view.container.querySelectorAll('.md-code-block')]
@@ -88,9 +88,9 @@ describe('viewport-activated syntax highlighting', () => {
 
     view.rerender(
       <>
-        <CodeBlock code="const first = 10" lang="ts" {...markdownLabels.code} />
-        <CodeBlock code="const second = 2" lang="ts" {...markdownLabels.code} />
-        <CodeBlock code="const third = 3" lang="ts" {...markdownLabels.code} />
+        <CodeBlock code="const first = 10" lang="ts" {...codeCopyLabels} />
+        <CodeBlock code="const second = 2" lang="ts" {...codeCopyLabels} />
+        <CodeBlock code="const third = 3" lang="ts" {...codeCopyLabels} />
       </>,
     )
     expect(blocks[0]!.querySelector('pre.shiki')?.textContent).toBe('const first = 10')
@@ -102,14 +102,14 @@ describe('viewport-activated syntax highlighting', () => {
 
   it('does not observe an unsupported language', () => {
     const view = render(
-      <CodeBlock code="IDENTIFICATION DIVISION." lang="cobol" {...markdownLabels.code} />,
+      <CodeBlock code="IDENTIFICATION DIVISION." lang="cobol" {...codeCopyLabels} />,
     )
     expect(view.container.querySelector('pre.shiki')).toBeNull()
     expect(IntersectionObserverStub.instances).toHaveLength(0)
   })
 
   it('releases the shared observer when the last pending block unmounts', () => {
-    const view = render(<CodeBlock code="const pending = true" lang="ts" {...markdownLabels.code} />)
+    const view = render(<CodeBlock code="const pending = true" lang="ts" {...codeCopyLabels} />)
     const block = view.container.querySelector('.md-code-block')!
     const observer = IntersectionObserverStub.instances[0]!
 
@@ -121,13 +121,13 @@ describe('viewport-activated syntax highlighting', () => {
 
   it('highlights immediately when IntersectionObserver is unavailable', () => {
     vi.stubGlobal('IntersectionObserver', undefined)
-    const view = render(<CodeBlock code="const fallback = true" lang="ts" {...markdownLabels.code} />)
+    const view = render(<CodeBlock code="const fallback = true" lang="ts" {...codeCopyLabels} />)
     expect(view.container.querySelector('pre.shiki')).not.toBeNull()
   })
 
   it('keeps an intersecting streaming block plain until its lazy grammar loads', async () => {
     const view = render(
-      <CodeBlock code="print(1)" lang="python" streaming {...markdownLabels.code} />,
+      <CodeBlock code="print(1)" lang="python" streaming {...codeCopyLabels} />,
     )
     const block = view.container.querySelector('.md-code-block')!
     const observer = IntersectionObserverStub.instances[0]!
