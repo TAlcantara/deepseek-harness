@@ -58,14 +58,20 @@ const DIAGRAM_THEME_CSS = `
 [data-look="neo"].node ellipse, [data-look="neo"].node path,
 .node rect, .node circle, .node ellipse, .node polygon, .node path,
 .cluster rect, .statediagram-cluster rect, g.classGroup rect, g.stateGroup rect,
-rect.note, polygon.labelBox, .actor-man circle, .actor, .labelBox {
+rect.note, polygon.labelBox, .actor-man circle, rect.actor, .labelBox {
   fill: var(--dsw-alias-bg-layer-1) !important;
   stroke: var(--dsw-alias-border-l1) !important;
 }
-text, tspan, span, .label, .nodeLabel, .classTitleText, .actor, .messageText,
+text, tspan, span, .label, .nodeLabel, .classTitleText, .messageText,
 .cluster span, .cluster-label text, .state-title, text.actor > tspan {
   fill: var(--dsw-alias-label-primary) !important;
   color: var(--dsw-alias-label-primary) !important;
+}
+/* Mermaid carries its actor border colour on the actor class whether the
+   element is the participant box or the label, which leaves the label with a
+   stray outline over its glyphs. Diagram text never wants one. */
+text, tspan {
+  stroke: none !important;
 }
 .edgePath .path, .flowchart-link, .relation, .transition, .messageLine0, .messageLine1,
 .loopLine, .actor-line, [data-look="neo"].node .neo-line path, line, g.classGroup line,

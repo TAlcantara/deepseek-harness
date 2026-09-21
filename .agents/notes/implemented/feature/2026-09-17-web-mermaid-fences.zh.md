@@ -20,7 +20,7 @@ Status: implemented
 
 **信任。** Mermaid 把模型生成的文本变成 SVG。`securityLevel: 'strict'` 让它自己的 sanitizer 挡在输出之前，`htmlLabels: false` 去掉 `<foreignObject>`，从而把结果收敛为不含 HTML 的纯 SVG 元素词汇表。`src/dom-to-react.tsx` 通过浏览器 HTML 解析器把该词汇表映射为 React 元素；该模块正是从 `katex.tsx` 抽出的 `domToReact`/`styleObject`，对 KaTeX 输出用的是同一套技术。fence 无法降低自己的安全等级：`%%{init: …}%%` 指令与 YAML frontmatter 只能覆盖 Mermaid `secure` 列表之外的键，而该列表包含 `securityLevel`，`tests/mermaid.client.spec.tsx` 对此做了固定。
 
-**主题。** Mermaid 把具体颜色烘进 SVG，并且拒绝 `themeVariables` 里的 CSS 函数——它在 `initialize()` 阶段就用一个颜色库处理每个值，而该库拒绝 `var(--dsw-…)`。但它会把 `themeCSS` 原样传进 SVG 自身的样式表，而该样式表会在实时文档中解析自定义属性。因此图表配色以 `!important` 引用 `--dsw-*` token（Mermaid 用自己的渲染 id 限定其规则作用域，其特异性高于普通类选择器），亮/暗切换无需重渲染即可重绘每张图。颜色编码分类而非表面的图表族——pie、mindmap、timeline、gitgraph、sankey、radar、treemap、xychart——保留库自带调色板。
+**主题。** Mermaid 把具体颜色烘进 SVG，并且拒绝 `themeVariables` 里的 CSS 函数——它在 `initialize()` 阶段就用一个颜色库处理每个值，而该库拒绝 `var(--dsw-…)`。但它会把 `themeCSS` 原样传进 SVG 自身的样式表，而该样式表会在实时文档中解析自定义属性。因此图表配色以 `!important` 引用 `--dsw-*` token（Mermaid 用自己的渲染 id 限定其规则作用域，其特异性高于普通类选择器），亮/暗切换无需重渲染即可重绘每张图。Mermaid 会把手在盒子和盒内标签上的同一个类分别用在两处，因此每条规则都必须用元素限定：`.actor` 既是 `rect.actor` 也是 `text.actor`，若在表面规则与文字规则里都裸写该类，盒子就会穿上文字的颜色、把标签吞掉。颜色编码分类而非表面的图表族——pie、mindmap、timeline、gitgraph、sankey、radar、treemap、xychart——保留库自带调色板。
 
 **标识与缓存。** 已渲染的 SVG 以 fence 源码为键缓存在有界的模块级 Map 中，不含主题维度，因为主题纯由 CSS 决定。Mermaid 用渲染 id 限定其样式表作用域，因此每次挂载在插入前都把该 id 重写为实例级取值；若不重写，同一份缓存 SVG 的第二次挂载会共用 DOM id 并丢失样式。
 

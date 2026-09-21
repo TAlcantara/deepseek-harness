@@ -118,6 +118,35 @@ describe('MermaidBlock', () => {
     expect(pending).toContain('display: block')
   })
 
+  it('never paints one class as both a surface and its text', () => {
+    // Mermaid reuses a class for the box and for the label inside it — `.actor`
+    // is `rect.actor` and `text.actor` — so a class named without its element in
+    // both the surface rule and the text rule resolves to whichever comes last.
+    // The box then takes the text colour and its label vanishes into it. Every
+    // class that carries both meanings must be element-qualified.
+    const source = readFileSync('packages/client/ui-primitives/src/markdown/mermaid.tsx', 'utf8')
+    const theme = /const DIAGRAM_THEME_CSS = `\n([\s\S]*?)\n`\.trim\(\)/.exec(source)?.[1] ?? ''
+    expect(theme).not.toBe('')
+
+    const bare = (selectors: string): string[] => selectors.split(',')
+      .map(selector => selector.trim())
+      .filter(selector => /^\.[A-Za-z][\w-]*$/u.test(selector))
+      .map(selector => selector.slice(1))
+
+    const surface = new Set<string>()
+    const text = new Set<string>()
+    for (const [, selectors = '', body = ''] of theme.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+      const target = body.includes('var(--dsw-alias-bg-layer-') ? surface
+        : body.includes('var(--dsw-alias-label-primary)') ? text
+          : undefined
+      if (target === undefined) continue
+      for (const name of bare(selectors)) target.add(name)
+    }
+    expect(surface.size).toBeGreaterThan(0)
+    expect(text.size).toBeGreaterThan(0)
+    expect([...surface].filter(name => text.has(name))).toEqual([])
+  })
+
   it('renders the SVG once activated, without any HTML island', async () => {
     const { view, placeholder } = mount('graph TD\n  A --> B')
     activate(placeholder)
