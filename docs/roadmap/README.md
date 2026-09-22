@@ -6,18 +6,18 @@ This directory is the repository's one home for status and direction documents: 
 
 ## Surveys
 
-`surveys/` holds dated, point-in-time analyses of project or subsystem state: gaps, risks, and cross-cutting observations. A survey is a snapshot named `YYYY-MM-DD-<topic>.md`; a newer survey of the same topic supersedes the older one.
+`surveys/` holds point-in-time analyses of project or subsystem state: gaps, risks, and cross-cutting observations. A survey is named `YYYY-MM-DD-<topic>.md` and anchors the analyzed commit in its header, so a `git diff` against that anchor proves whether it still applies. Wrong claims may be corrected in place; changed code requires a new dated survey that supersedes the old one.
 
 No surveys yet.
 
 ## Incubation
 
-`incubation/` holds requirement drafts still being developed. A draft either graduates into a proposed Agent Note or a shipped change, or it is dropped; either way its file leaves this directory when the outcome lands.
+`incubation/` holds requirement drafts still being developed. A draft either graduates into a proposed Agent Note or a shipped change, or it is dropped — dropped drafts stay frozen with their status marked at the top when their analysis remains useful.
 
 No requirements incubating.
 
 ## Roadmaps
 
-`roadmaps/` holds living documents of intended direction per theme: priorities and sequencing intent, never commitments.
+`roadmaps/` holds thin Now/Next/Later status boards per theme: one row per item with a status and a link to its draft, note, or shipped change — intent, never commitments.
 
 No roadmaps yet.
