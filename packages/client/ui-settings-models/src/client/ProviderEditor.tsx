@@ -34,6 +34,7 @@ import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
 import { deriveKeyRef, protocolChoices } from './store.ts'
+import type { CompatFieldChoice } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import type { en } from './locales.ts'
@@ -65,6 +66,13 @@ export interface ProviderEditorProps {
   namespace: SettingsNamespaceView
   /** Settings-owned synchronous schema and immutable path operations. */
   schema: SettingsSchemaOperations
+  /**
+   * Compat switches by wire protocol, mined once from the adapter's own schema.
+   * A route whose protocol is not a key here has no switch this page may edit:
+   * either the page cannot prove which protocol its models speak, or the
+   * adapter's `Config` declares no switch for it.
+   */
+  compatFields: ReadonlyMap<string, readonly CompatFieldChoice[]>
   /** Path from the section root to this provider's profile. */
   settingsPath: readonly string[]
   /** The Host operations this card writes and interrogates through. */
@@ -238,6 +246,14 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     ...probeApi === undefined ? {} : { api: probeApi },
     ...keyValue.length === 0 ? {} : { apiKey: keyValue },
   }
+  // What this route's models speak, when the card can prove it: a hand-declared
+  // route names one protocol for all of them. A catalog route's models carry
+  // their own, which the page cannot read, so no switch is offered there — the
+  // adapter's schema would refuse a switch its model's protocol does not take,
+  // and guessing would turn one bad pick into a rejected whole-profile write.
+  const compat = layout === 'pi-ai' && probeApi !== undefined
+    ? props.compatFields.get(probeApi) ?? []
+    : []
   /**
    * The write for this card, or a failure message. Every edit travels as
    * path ops against the STORED section: the draft comes from the redacted
@@ -464,6 +480,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
               : (
                 <ModelListEditor
                   {...catalogProps}
+                  compat={compat}
                   probe={probe}
                   probeBlocked={keyFailure}
                   operations={operations}

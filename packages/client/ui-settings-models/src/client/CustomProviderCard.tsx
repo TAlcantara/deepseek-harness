@@ -30,6 +30,7 @@ import { validateDeepSeekModels } from './DeepSeekModelsEditor.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
 import type { ModelDraft } from './ModelListEditor.tsx'
 import { deriveKeyRef } from './store.ts'
+import type { CompatFieldChoice } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
@@ -62,6 +63,8 @@ export interface CustomProviderCardProps {
   taken: readonly string[]
   /** Wire protocols the adapter can serve, in the order it reports them. */
   protocols: readonly string[]
+  /** Compat switches by wire protocol, mined once from the adapter's own schema. */
+  compatFields: ReadonlyMap<string, readonly CompatFieldChoice[]>
   /**
    * Revision of the `llm-pi-ai` user section this card opened at, sent with
    * the create so a route another tab declared meanwhile is a refusal rather
@@ -278,6 +281,7 @@ export function CustomProviderCard(props: CustomProviderCardProps): ReactNode {
       <ModelListEditor
         models={models}
         onChange={setModels}
+        compat={props.compatFields.get(protocol) ?? []}
         probe={{
           settingsNs: NS,
           baseURL: normalizedBaseURL,

@@ -12,6 +12,7 @@ import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
 import { onboardingReadiness } from './store.ts'
+import { compatFieldsByProtocol } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import { ProviderEditor } from './ProviderEditor.tsx'
@@ -105,6 +106,10 @@ export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): 
           displayName={row.entry.displayName}
           namespace={namespace}
           schema={schema}
+          // This card is the DeepSeek credential step alone, and that adapter
+          // declares no compat switch: the map is mined from its own namespace
+          // rather than borrowed, so a pi-ai switch can never appear here.
+          compatFields={compatFieldsByProtocol(namespace, schema)}
           settingsPath={row.entry.settingsPath}
           operations={operations}
           t={t}

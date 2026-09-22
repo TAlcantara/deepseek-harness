@@ -11,7 +11,7 @@ import type { ModelsSectionInjected, ModelsSectionProps } from '../src/client/Mo
 import { CustomProviderCard } from '../src/client/CustomProviderCard.tsx'
 import { formatCapacity, parseCapacity } from '../src/client/DeepSeekModelsEditor.tsx'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
-import { ModelsSettingsStore, deriveKeyRef, protocolChoices } from '../src/client/store.ts'
+import { ModelsSettingsStore, compatFieldsByProtocol, deriveKeyRef, protocolChoices } from '../src/client/store.ts'
 import { createModelsOperations } from '../src/client/operations.ts'
 import type { ModelsOperations } from '../src/client/operations.ts'
 import { en } from '../src/client/locales.ts'
@@ -38,6 +38,18 @@ const PiAiConfig = Schema.object({
       maxTokens: Schema.number(),
     })),
     reasoning: Schema.union(['off', 'high']),
+    compat: Schema.object({
+      supportsStore: Schema.boolean(),
+      supportsDeveloperRole: Schema.boolean(),
+      supportsReasoningEffort: Schema.boolean(),
+      supportsUsageInStreaming: Schema.boolean(),
+      maxTokensField: Schema.union(['max_tokens', 'max_completion_tokens']),
+      thinkingFormat: Schema.union(['openai', 'deepseek']),
+      supportsMaxOutputTokens: Schema.boolean(),
+      supportsStrictMode: Schema.boolean(),
+      supportsLongCacheRetention: Schema.boolean(),
+      supportsTemperature: Schema.boolean(),
+    }),
   })),
 })
 
@@ -252,6 +264,142 @@ describe('protocolChoices', () => {
     const plain = { ...namespace, schema: JSON.parse(JSON.stringify(Schema.object({}).toJSON())) as JsonValue }
     expect(protocolChoices(plain, settingsSchema)).toEqual([])
     await Promise.resolve()
+  })
+})
+
+describe('compatFieldsByProtocol', () => {
+  /** A namespace whose schema declares the switches the page edits. */
+  function namespaceWith(compat: Record<string, unknown>): SettingsNamespaceView {
+    const schema = Schema.object({
+      providers: Schema.dict(Schema.object({
+        api: Schema.union(PROTOCOLS),
+        compat: Schema.object(compat as never),
+      })),
+    })
+    return {
+      ...piAiNamespace({}),
+      schema: JSON.parse(JSON.stringify(schema.toJSON())) as JsonValue,
+    }
+  }
+
+  it('reads the enum values out of the adapter schema and keeps the page order', () => {
+    const fields = compatFieldsByProtocol(namespaceWith({
+      supportsStore: Schema.boolean(),
+      maxTokensField: Schema.union(['max_tokens', 'max_completion_tokens']),
+      thinkingFormat: Schema.union(['openai', 'deepseek']),
+    }), settingsSchema)
+    expect(fields.get('openai-completions')).toEqual([
+      { field: 'supportsStore' },
+      { field: 'maxTokensField', options: ['max_tokens', 'max_completion_tokens'] },
+      { field: 'thinkingFormat', options: ['openai', 'deepseek'] },
+    ])
+    // A protocol with no declared switch is absent rather than an empty list.
+    expect(fields.get('openai-responses')).toBeUndefined()
+  })
+
+  it('drops a switch the adapter declares nowhere and an enum it cannot enumerate', () => {
+    const fields = compatFieldsByProtocol(namespaceWith({
+      // A union of non-const schemas carries no wire values to offer.
+      maxTokensField: Schema.union([Schema.number()]),
+      supportsStore: Schema.boolean(),
+    }), settingsSchema)
+    expect(fields.get('openai-completions')).toEqual([{ field: 'supportsStore' }])
+  })
+
+  it('offers nothing without a namespace or without the profile schema', () => {
+    expect([...compatFieldsByProtocol(undefined, settingsSchema)]).toEqual([])
+    const plain = {
+      ...piAiNamespace({}),
+      schema: JSON.parse(JSON.stringify(Schema.object({}).toJSON())) as JsonValue,
+    }
+    expect([...compatFieldsByProtocol(plain, settingsSchema)]).toEqual([])
+  })
+})
+
+describe('wire compatibility switches', () => {
+  /** One route whose protocol the page can prove, with a single model to edit. */
+  const GATEWAY = {
+    api: 'openai-completions',
+    baseURL: 'https://gateway.acme.example/v1',
+    models: [{ id: 'acme-think' }],
+  }
+
+  it('edits a boolean and an enum switch and stores only what changed', async () => {
+    const { mutate } = await mountSection({ providers: { acme: GATEWAY } })
+    openEditor('acme')
+    expandModel(1)
+
+    fireEvent.change(screen.getByLabelText(`${en.compatSupportsStore} 1`), { target: { value: 'true' } })
+    fireEvent.change(screen.getByLabelText(`${en.compatMaxTokensField} 1`), { target: { value: 'max_tokens' } })
+    fireEvent.change(screen.getByLabelText(`${en.compatThinkingFormat} 1`), { target: { value: 'deepseek' } })
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(mutate).ops).toEqual([{
+      op: 'set',
+      path: ['providers', 'acme', 'models'],
+      value: [{
+        id: 'acme-think',
+        compat: { supportsStore: true, maxTokensField: 'max_tokens', thinkingFormat: 'deepseek' },
+      }],
+    }])
+  })
+
+  it('drops a switch set back to the provider default, and the block with its last switch', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        acme: {
+          ...GATEWAY,
+          models: [{ id: 'acme-think', compat: { supportsStore: true } }, { id: 'acme-fast' }],
+        },
+      },
+    })
+    openEditor('acme')
+    expandModel(1)
+
+    // A stored value is what the control shows, and the default is its first option.
+    expect(screen.getByLabelText<HTMLSelectElement>(`${en.compatSupportsStore} 1`).value).toBe('true')
+    expect(screen.getByLabelText<HTMLSelectElement>(`${en.compatMaxTokensField} 1`).value).toBe('')
+    fireEvent.change(screen.getByLabelText(`${en.compatSupportsStore} 1`), { target: { value: '' } })
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    // An empty block leaves the profile rather than staying as `{}`, which the
+    // row would render as configured while the adapter reads nothing stated.
+    // The row beside it is carried through untouched.
+    expect(firstMutate(mutate).ops).toEqual([{
+      op: 'set',
+      path: ['providers', 'acme', 'models'],
+      value: [{ id: 'acme-think' }, { id: 'acme-fast' }],
+    }])
+  })
+
+  it('offers the switches the route protocol takes and none for an unprovable one', async () => {
+    const responses = await mountSection({
+      providers: { acme: { ...GATEWAY, api: 'openai-responses' } },
+    })
+    openEditor('acme')
+    expandModel(1)
+    expect(screen.getByLabelText(`${en.compatSupportsMaxOutputTokens} 1`)).toBeTruthy()
+    expect(screen.queryByLabelText(`${en.compatThinkingFormat} 1`)).toBeNull()
+    expect(responses.mutate).not.toHaveBeenCalled()
+
+    cleanup()
+    // A catalog route's models carry their own protocols, which the page cannot
+    // read: guessing one would turn a bad pick into a rejected whole profile.
+    await mountSection({ providers: { openai: { baseURL: 'https://proxy.example/v1', models: [{ id: 'gpt' }] } } })
+    openEditor('openai')
+    expandModel(1)
+    expect(screen.queryByText(en.compat)).toBeNull()
+
+    cleanup()
+    const other = await mountSection({
+      providers: { acme: { ...GATEWAY, api: 'anthropic-messages' } },
+    })
+    openEditor('acme')
+    expandModel(1)
+    expect(screen.queryByText(en.compat)).toBeNull()
+    expect(other.mutate).not.toHaveBeenCalled()
   })
 })
 
@@ -601,6 +749,7 @@ describe('endpoint interrogation', () => {
     render(
       <CustomProviderCard
         taken={[]} protocols={PROTOCOLS} revision={7} operations={operationsWith(scripted.face)}
+        compatFields={compatFieldsByProtocol(piAiNamespace({}), settingsSchema)}
         t={t} readOnly={false} onClose={vi.fn()}
       />,
     )
@@ -770,6 +919,7 @@ describe('hand-declared providers', () => {
       <CustomProviderCard
         taken={['openai']}
         protocols={PROTOCOLS}
+        compatFields={compatFieldsByProtocol(piAiNamespace({}), settingsSchema)}
         revision={7}
         operations={operationsWith(scripted.face)}
         t={t}
@@ -793,7 +943,6 @@ describe('hand-declared providers', () => {
     expandModel(1)
     fireEvent.change(screen.getByLabelText(`${en.modelContextWindow} 1`), { target: { value: '65536' } })
     fireEvent.click(screen.getByText(en.create))
-
     await waitFor(() => { expect(onClose).toHaveBeenCalledWith(true) })
     expect(firstMutate(mutate)).toEqual({
       ns: 'llm-pi-ai',
@@ -813,6 +962,20 @@ describe('hand-declared providers', () => {
       expectedRevision: 7,
     })
     expect(set).toHaveBeenCalledWith('ACME_GATEWAY_API_KEY', 'gw-key')
+  })
+
+  it('offers the chosen protocol’s compat switches on the model being declared', () => {
+    mountCard()
+
+    fireEvent.click(screen.getByRole('button', { name: en.addModel }))
+    expandModel(1)
+    expect(screen.getByLabelText(`${en.compatSupportsStore} 1`)).toBeTruthy()
+
+    // The protocol being declared decides which switches exist, and the change
+    // is immediate: this card holds the protocol in its own state.
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'openai-responses' } })
+    expect(screen.queryByLabelText(`${en.compatSupportsStore} 1`)).toBeNull()
+    expect(screen.getByLabelText(`${en.compatSupportsMaxOutputTokens} 1`)).toBeTruthy()
   })
 
   it('scopes each card to fields a provider can actually own', async () => {

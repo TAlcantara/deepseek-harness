@@ -19,7 +19,7 @@ import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-sl
 // Type-only: pulls this package's SlotMap merge (the two Models child slots).
 import type {} from './slot-contract.ts'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
-import { deriveKeyRef, protocolChoices, providerUsable } from './store.ts'
+import { compatFieldsByProtocol, deriveKeyRef, protocolChoices, providerUsable } from './store.ts'
 import type { ModelsSettingsStore, ProviderRow } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
@@ -81,7 +81,7 @@ interface EditorTarget extends ProviderIdentity {
 /** Values that vary around the shared provider-editor rendering. */
 interface ProviderEditorRenderProps extends Pick<
   ProviderEditorProps,
-  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose'
+  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose' | 'compatFields'
 > {
   target: EditorTarget
 }
@@ -304,6 +304,10 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
   // one whose schema names the protocols one may speak; without it mounted
   // there is nothing to declare and the entry point stays disabled.
   const protocols = protocolChoices(state.namespaces.get('llm-pi-ai'), schema)
+  // Mined once for every card on the page, from the same schema read: a switch
+  // the adapter's `Config` does not declare never becomes a control, so no card
+  // can write a key the adapter would not read.
+  const compatFields = compatFieldsByProtocol(state.namespaces.get('llm-pi-ai'), schema)
 
   return (
     <div className={styles['section']}>
@@ -336,6 +340,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   target,
                   namespace,
                   schema,
+                  compatFields,
                   operations,
                   t,
                   readOnly: !state.writable,
@@ -432,6 +437,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   target,
                   namespace,
                   schema,
+                  compatFields,
                   operations,
                   t,
                   readOnly: !state.writable,
@@ -471,6 +477,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 hideTitle
                 namespace={addNamespace}
                 schema={schema}
+                compatFields={compatFields}
                 settingsPath={addTarget.settingsPath}
                 operations={operations}
                 t={t}
@@ -492,6 +499,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 <CustomProviderCard
                   taken={state.rows.map(row => row.entry.provider)}
                   protocols={protocols}
+                  compatFields={compatFields}
                   /* v8 ignore next -- the card only opens from a button disabled without this namespace */
                   revision={state.namespaces.get('llm-pi-ai')?.revision ?? 0}
                   operations={operations}

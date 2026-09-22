@@ -20,6 +20,7 @@ import type { LlmDiscoveredModel } from '@deepseek-ai/dsh-api-remotes/client'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { formatCapacity, parseCapacity } from './DeepSeekModelsEditor.tsx'
 import type { ModelsOperations } from './operations.ts'
+import type { CompatField, CompatFieldChoice } from './store.ts'
 import type { DeepSeekModelDraft } from './DeepSeekModelsEditor.tsx'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
@@ -40,6 +41,42 @@ function textOf(model: ModelDraft, key: string): string {
 function numberOf(model: ModelDraft, key: string): number | undefined {
   const value = model[key]
   return typeof value === 'number' ? value : undefined
+}
+
+/** The label key of each compat switch this page edits. */
+const COMPAT_LABEL: Readonly<Record<CompatField, keyof typeof en>> = {
+  supportsStore: 'compatSupportsStore',
+  supportsDeveloperRole: 'compatSupportsDeveloperRole',
+  supportsReasoningEffort: 'compatSupportsReasoningEffort',
+  supportsUsageInStreaming: 'compatSupportsUsageInStreaming',
+  maxTokensField: 'compatMaxTokensField',
+  thinkingFormat: 'compatThinkingFormat',
+  supportsMaxOutputTokens: 'compatSupportsMaxOutputTokens',
+  supportsStrictMode: 'compatSupportsStrictMode',
+  supportsLongCacheRetention: 'compatSupportsLongCacheRetention',
+}
+
+/**
+ * The row's own compat object, or an empty one where the field is absent.
+ * @param model - one drafted row.
+ * @returns the switch values currently stored on this row.
+ */
+function compatOf(model: ModelDraft): Record<string, unknown> {
+  const value = model['compat']
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+/**
+ * One stored switch in the control's own vocabulary.
+ * @param model - one drafted row.
+ * @param field - compat field to read.
+ * @returns the wire spelling, or the empty string when nothing is stated.
+ */
+function storedSwitch(model: ModelDraft, field: CompatField): string {
+  const stored = compatOf(model)[field]
+  return typeof stored === 'boolean' || typeof stored === 'string' ? String(stored) : ''
 }
 
 /** What an interrogation needs, taken from the live form. */
@@ -64,6 +101,12 @@ export interface ProbeTarget {
 export interface ModelListEditorProps {
   /** The rows as currently drafted. */
   models: readonly ModelDraft[]
+  /**
+   * Compat switches this route's protocol takes, in page order. Empty for a
+   * route whose protocol the page cannot prove — a catalog route's models each
+   * carry their own — and for a deployment whose adapter declares no switches.
+   */
+  compat: readonly CompatFieldChoice[]
   /** Whether the user layer currently owns the whole array; absent on a create. */
   overridden?: boolean
   /** Replace the drafted rows. */
@@ -224,6 +267,66 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
         Object.entries({ ...model, ...next }).filter(([key]) => !cleared.has(key)),
       )
     }))
+  }
+
+  /**
+   * Set or clear one compat switch on one row. A nested object cannot go
+   * through {@link patch}, whose clearing rule is about empty scalars: here an
+   * emptied switch is a missing key, and a block with no switches left leaves
+   * the profile rather than staying behind as `{}` — which the row would render
+   * as configured while the adapter read it as nothing stated.
+   * @param index - row position.
+   * @param field - compat field to set.
+   * @param value - the switch value, or undefined to leave it to the layer beneath.
+   */
+  const setCompat = (index: number, field: CompatField, value: unknown): void => {
+    onChange(models.map((model, at) => {
+      if (at !== index) return model
+      const next = { ...compatOf(model) }
+      if (value === undefined) Reflect.deleteProperty(next, field)
+      else next[field] = value
+      if (Object.keys(next).length === 0) {
+        const emptied = { ...model }
+        Reflect.deleteProperty(emptied, 'compat')
+        return emptied
+      }
+      return { ...model, compat: next }
+    }))
+  }
+
+  /** One compat switch of one row, rendered inside the row's disclosure. */
+  const compatField = (model: ModelDraft, index: number, choice: CompatFieldChoice): ReactNode => {
+    const label = t(COMPAT_LABEL[choice.field])
+    return (
+      <label className={styles['modelField']} key={choice.field}>
+        <span className={styles['modelFieldLabel']}>{label}</span>
+        <select
+          className={`${styles['input']} ${styles['selectInput']}`}
+          value={storedSwitch(model, choice.field)}
+          aria-label={`${label} ${String(index + 1)}`}
+          disabled={disabled}
+          onChange={(event) => {
+            const next = event.target.value
+            // Which control this is decides how an empty selection reads, never
+            // the text: no enum this page offers spells a boolean, and reading
+            // the text instead would tie the two together forever.
+            setCompat(index, choice.field, next === ''
+              ? undefined
+              : choice.options === undefined ? next === 'true' : next)
+          }}
+        >
+          <option value="">{t('compatInherit')}</option>
+          {choice.options === undefined
+            ? (
+              <>
+                <option value="true">{t('compatYes')}</option>
+                <option value="false">{t('compatNo')}</option>
+              </>
+            )
+            : choice.options.map(option => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </label>
+    )
   }
 
   const fetchModels = async (): Promise<void> => {
@@ -433,6 +536,17 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
                     onChange={(event) => { editCapacity(index, 'maxTokens', event.target.value) }}
                   />
                 </label>
+                {props.compat.length === 0
+                  ? null
+                  : (
+                    <>
+                      <span className={styles['modelCompatTitle']}>
+                        {t('compat')}
+                        <span className={styles['modelCompatHint']}>{t('compatHint')}</span>
+                      </span>
+                      {props.compat.map(choice => compatField(model, index, choice))}
+                    </>
+                  )}
               </div>
             )
             : null}

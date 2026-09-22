@@ -134,6 +134,102 @@ export function protocolChoices(
   return list.list.map(entry => entry.value).filter((value): value is string => typeof value === 'string')
 }
 
+/**
+ * The pi-ai wire-compatibility switches this page edits.
+ *
+ * This is a SUBSET of the adapter's compat surface, not a copy of it: the page
+ * offers the switches a hand-declared gateway has to state for itself, and the
+ * adapter's own schema stays the authority on which protocol takes any of them.
+ */
+export type CompatField =
+  | 'supportsStore'
+  | 'supportsDeveloperRole'
+  | 'supportsReasoningEffort'
+  | 'supportsUsageInStreaming'
+  | 'maxTokensField'
+  | 'thinkingFormat'
+  | 'supportsMaxOutputTokens'
+  | 'supportsStrictMode'
+  | 'supportsLongCacheRetention'
+
+/** One compat switch as the page can render it. */
+export interface CompatFieldChoice {
+  /** Field name, exactly as the adapter's schema and wire contract spell it. */
+  field: CompatField
+  /**
+   * Wire values an enum switch accepts, in the adapter's own order. Absent
+   * means a boolean switch, whose third state — the key is not set — is the
+   * layer beneath the profile and not the same request as `false`.
+   */
+  options?: readonly string[]
+}
+
+/** The three Responses protocols share one compat type, so they share its switches. */
+const RESPONSES_COMPAT_FIELDS: readonly CompatField[] = [
+  'supportsDeveloperRole',
+  'supportsMaxOutputTokens',
+  'supportsStrictMode',
+  'supportsLongCacheRetention',
+]
+
+/** The protocols the page can name a compat switch for, and the switches it edits on each. */
+const COMPAT_PAGE_FIELDS: ReadonlyMap<string, readonly CompatField[]> = new Map([
+  ['openai-completions', [
+    'supportsStore',
+    'supportsDeveloperRole',
+    'supportsReasoningEffort',
+    'supportsUsageInStreaming',
+    'maxTokensField',
+    'thinkingFormat',
+  ]],
+  ['openai-responses', RESPONSES_COMPAT_FIELDS],
+  ['azure-openai-responses', RESPONSES_COMPAT_FIELDS],
+  ['openai-codex-responses', RESPONSES_COMPAT_FIELDS],
+])
+
+/**
+ * The compat switches the page may edit, keyed by wire protocol.
+ *
+ * Every switch passes two gates. The protocol gate comes from
+ * {@link COMPAT_PAGE_FIELDS}, because the adapter refuses a switch the model's
+ * protocol does not declare. The schema gate is the one that keeps this page
+ * honest: a control the adapter's `Config` does not declare would write a key
+ * nothing reads, and schemastery passes unknown keys through — so such a write
+ * succeeds and looks applied while changing no request at all.
+ * @param namespace - the namespace view whose schema declares the profile shape.
+ * @param schema - settings schema operations.
+ * @returns every protocol this page can edit a switch on, in the page's own order.
+ */
+export function compatFieldsByProtocol(
+  namespace: SettingsNamespaceView | undefined,
+  schema: SettingsSchemaOperations,
+): ReadonlyMap<string, readonly CompatFieldChoice[]> {
+  const byProtocol = new Map<string, readonly CompatFieldChoice[]>()
+  if (namespace === undefined) return byProtocol
+  const root = schema.rehydrate(namespace.schema)
+  for (const [api, fields] of COMPAT_PAGE_FIELDS) {
+    const choices: CompatFieldChoice[] = []
+    for (const field of fields) {
+      const node = schema.nodeAtPath(root, ['providers', PROBE_ROUTE, 'compat', field])
+      if (node === undefined) continue
+      const list = (node as { type?: string; list?: readonly { value?: unknown }[] })
+      if (list.type !== 'union' || list.list === undefined) {
+        choices.push({ field })
+        continue
+      }
+      // An enum the schema cannot enumerate is not a switch this page can
+      // offer: a dropdown with nothing to pick from would have to free-text a
+      // wire value the adapter then refuses.
+      const options = list.list
+        .map(entry => entry.value)
+        .filter((value): value is string => typeof value === 'string')
+      if (options.length > 0) choices.push({ field, options })
+    }
+    if (choices.length > 0) byProtocol.set(api, choices)
+  }
+  return byProtocol
+}
+
 /** The credential reference a resolved profile names (its `apiKeyEnv` field). */
 function apiKeyEnvOf(
   namespace: SettingsNamespaceView | undefined,

@@ -33,6 +33,9 @@ const openaiCopy = (template: string): string => providerCopy(template, OPENAI_T
 const DEEPSEEK_TARGET = { provider: 'deepseek-official', displayName: 'DeepSeek' }
 const deepSeekCopy = (template: string): string => providerCopy(template, DEEPSEEK_TARGET)
 
+/** Compat switches for the fixtures here: their adapter schemas declare none. */
+const NO_COMPAT_FIELDS = new Map()
+
 /** Open one row's capacity disclosure (1-based, as the labels read). */
 function expandRow(position: number): void {
   fireEvent.click(screen.getByLabelText(`${en.modelAdvanced} ${String(position)}`))
@@ -565,6 +568,7 @@ describe('ModelsSection', () => {
       hideTitle
       namespace={wireNamespaces()[0]!}
       schema={settingsSchema}
+      compatFields={NO_COMPAT_FIELDS}
       settingsPath={[]}
       operations={operationsWith(face)}
       t={t}
@@ -818,6 +822,7 @@ describe('ModelsSection', () => {
       displayName="DeepSeek"
       namespace={overridden}
       schema={settingsSchema}
+      compatFields={NO_COMPAT_FIELDS}
       settingsPath={[]}
       operations={operationsWith(face)}
       t={t}
@@ -1048,6 +1053,7 @@ describe('ModelsSection', () => {
       displayName="DeepSeek"
       namespace={bare}
       schema={settingsSchema}
+      compatFields={NO_COMPAT_FIELDS}
       settingsPath={[]}
       operations={operationsWith(face)}
       t={t}

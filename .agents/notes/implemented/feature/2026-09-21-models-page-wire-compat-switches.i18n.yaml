@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-21-models-page-wire-compat-switches.md
+2026-09-21-models-page-wire-compat-switches.md: 7f6f1acd5c186d4fe6c2c77424e702c8c670227a
+2026-09-21-models-page-wire-compat-switches.zh.md: dbfe36dcd05f3a3a58a6337997388f5110cb74ae
