@@ -24,6 +24,7 @@ Each fact has one home: the tier whose job it is; elsewhere, link there.
 | [subsystems/](subsystems/README.md) | One reference page per subsystem: type definitions, semantics, and the generated Cordis API | Behavior narration (→ architecture.md) |
 | [Agent Notes](../.agents/notes/README.md) | Active decision records: the why, what-was-given-up, and required verification; `implemented/` notes describe shipped reality in present tense | Migration plans, acceptance-task checklists, fixture walkthroughs, and spec-speak ("should…") once the decision has shipped; archived notes are frozen history, never current authority |
 | [postmortem/](postmortem/README.md) | Incident stories — the only tier where war-story narrative belongs | — |
+| [roadmap/](roadmap/README.md) | Status and direction: dated surveys, incubating requirements, thematic roadmaps — the only tier where status and forward-looking material belongs | Mechanism references (→ subsystems), decision rationale (→ Agent Notes) |
 | [cookbook/](cookbook/adding-a-package.md) | Step-by-step how-tos with numbered verify steps | Design rationale (→ the Agent Note each guide links) |
 | [user/](user/index.md) | Product-facing guides published by the documentation website | Generated reference tables, contributor procedures, decision history |
 | Package README | The per-package contract: config, semantics, limitations, extension points, and [Model Experience](cookbook/adding-a-package.md#4-write-the-package-readme) | JSDoc restatement, generated-catalog restatement (event/tool tables), other packages' concerns |
@@ -31,7 +32,7 @@ Each fact has one home: the tier whose job it is; elsewhere, link there.
 | Generated reference: the per-page `cordis-surface` regions in [subsystems/](subsystems/README.md), the [Cordis core API + inherited tier](cordis-api/context.md), [tool-catalog](tool-catalog.md), [config-catalog](config-catalog.md), [persistence-catalog](persistence-catalog.md), [module-graph.md](module-graph.md) | Exhaustive English sources regenerated from source and freshness-gated; reviewed Chinese counterparts follow the [pairing workflow](i18n/README.md#scope-and-exclusions) | Hand edits to generated English sources or regions; Chinese counterparts update through pairing only |
 | Skills (`.agents/skills/`) | Reusable workflows and specialized decision standards | Product and runtime contracts (→ docs or source) |
 
-Placement: bugs → postmortems; rationale → Agent Notes; procedures → cookbooks; type definitions → subsystems; package contracts → READMEs; standing orders → root `AGENTS.md` with a rationale link.
+Placement: bugs → postmortems; rationale → Agent Notes; procedures → cookbooks; type definitions → subsystems; package contracts → READMEs; status and direction → [roadmap/](roadmap/README.md); standing orders → root `AGENTS.md` with a rationale link.
 
 ## Writing rules
 
@@ -62,7 +63,7 @@ Hunt these in any doc; [dsh-doc](../.agents/skills/dsh-doc/SKILL.md) runs this l
 
 - The same rule stated in more than one home. Grep a distinctive phrase; keep one home and link the rest.
 - Narrated history or war stories: "previously", "now", "no longer", "used to", "renamed", "was moved", PRs, or commits. State the current fact; link an Agent Note or postmortem when needed.
-- Implementation-status annotations in prose or diagrams ("implemented!", "future: …"). Status rots; the repo layout and package manifests carry it.
+- Implementation-status annotations in prose or diagrams ("implemented!", "future: …"). Status rots; the repo layout and package manifests carry it. Standing status and direction documents belong to [roadmap/](roadmap/README.md).
 - Hand-restated catalogs, JSDoc, or inventories of tests, packages, and status when source or a generator is authoritative.
 - Reasoning transcripts: step-by-step implementation narration, proof of obvious branches, test walkthroughs, or rejected local alternatives. Keep the resulting contract or durable rationale; delete the path used to derive it.
 - Rationale repeated beside sibling methods instead of once at the owning capability or helper.

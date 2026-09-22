@@ -144,6 +144,7 @@ const NON_SOURCE_DIRECTORIES = new Set([
   '__pycache__',
   '.pytest_cache',
   '.artifacts',
+  'scratch',
   'vendor',
 ])
 
@@ -161,6 +162,7 @@ export const TRANSLATION_SCOPE_GLOB_EXCLUDES = [
   '**/.storages/**',
   '**/tmp/**',
   '**/dist-exe/**',
+  '**/scratch/**',
   '**/__pycache__/**',
   '**/.pytest_cache/**',
   'apps/web/dist/**',
